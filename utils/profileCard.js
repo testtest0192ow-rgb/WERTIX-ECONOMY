@@ -1,174 +1,99 @@
 const { createCanvas, loadImage } = require("canvas");
 
-async function createProfileCard(user, data) {
+const emojis = require("./emojis");
 
-    const width = 1200;
-    const height = 500;
+async function createProfileCard(data) {
 
-    const canvas = createCanvas(width, height);
+    const canvas = createCanvas(900, 240);
     const ctx = canvas.getContext("2d");
 
 
-    // Фон карточки
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-
-    gradient.addColorStop(0, "#111111");
-    gradient.addColorStop(1, "#2b2b2b");
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-
-
-    // Правая панель
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    // фон
+    ctx.fillStyle = "#161616";
     ctx.beginPath();
-    ctx.roundRect(300, 50, 850, 400, 30);
+    ctx.roundRect(0, 0, 900, 240, 25);
     ctx.fill();
 
 
-
-    // Аватар пользователя
-
-    const avatar = await loadImage(
-        user.displayAvatarURL({
-            extension: "png",
-            size: 512
-        })
-    );
-
-
-    // Круглый аватар
+    // аватар
+    const avatar = await loadImage(data.avatar);
 
     ctx.save();
-
     ctx.beginPath();
-    ctx.arc(
-        170,
-        250,
-        120,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.closePath();
+    ctx.arc(80, 80, 45, 0, Math.PI * 2);
     ctx.clip();
-
-
     ctx.drawImage(
         avatar,
-        50,
-        130,
-        240,
-        240
+        35,
+        35,
+        90,
+        90
     );
-
-
     ctx.restore();
 
 
-
-    // Рамка вокруг аватара
-
-    ctx.beginPath();
-
-    ctx.arc(
-        170,
-        250,
-        125,
-        0,
-        Math.PI * 2
+    // ник
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 28px Arial";
+    ctx.fillText(
+        data.username,
+        150,
+        70
     );
 
 
-    ctx.strokeStyle = "#FFD700";
-    ctx.lineWidth = 8;
-    ctx.stroke();
+    // дата
+    ctx.fillStyle = "#aaaaaa";
+    ctx.font = "16px Arial";
+    ctx.fillText(
+        `Вступил: ${data.joinDate}`,
+        150,
+        105
+    );
 
 
-
-    // Ник
+    // статы
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 55px Arial";
+    ctx.font = "20px Arial";
+
 
     ctx.fillText(
-        user.username,
-        360,
-        130
+        `${emojis.coin} ${data.balance}`,
+        50,
+        170
     );
 
 
-
-    // Статистика
-
-    ctx.font = "35px Arial";
-
-
-    ctx.fillStyle = "#FFD700";
     ctx.fillText(
-        `🪙 Монеты: ${(data.coins || 0).toLocaleString()}`,
-        360,
+        `${emojis.fire} ${data.streak} дней`,
+        300,
+        170
+    );
+
+
+    ctx.fillText(
+        `${emojis.marriage} ${data.marriage}`,
+        600,
+        170
+    );
+
+
+    ctx.fillText(
+        `${emojis.voice} ${data.voice}ч`,
+        50,
         210
     );
 
 
-    ctx.fillStyle = "#ff5722";
     ctx.fillText(
-        `🔥 Стрик: ${data.streak || 0} дней`,
-        360,
-        270
+        `${emojis.level} ${data.level}`,
+        300,
+        210
     );
-
-
-    ctx.fillStyle = "#4fc3f7";
-    ctx.fillText(
-        `💬 Сообщения: ${(data.messages || 0).toLocaleString()}`,
-        360,
-        330
-    );
-
-
-    ctx.fillStyle = "#b388ff";
-    ctx.fillText(
-        `🎧 ГС: ${data.voiceTime || 0} минут`,
-        360,
-        390
-    );
-
-
-
-    // Уровень
-
-    const level = Math.floor((data.messages || 0) / 100) + 1;
-
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 30px Arial";
-
-    ctx.fillText(
-        `⭐ Уровень ${level}`,
-        850,
-        390
-    );
-
-
-
-    // Нижняя подпись
-
-    ctx.font = "25px Arial";
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-
-    ctx.fillText(
-        "Профиль игрока",
-        360,
-        440
-    );
-
 
 
     return canvas.toBuffer();
-
 }
 
 
