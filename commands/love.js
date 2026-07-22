@@ -28,7 +28,7 @@ module.exports = {
 
 
         // временные данные
-        // потом заменим на MongoDB
+        // позже подключим MongoDB
 
         const loveData = {
 
@@ -43,6 +43,7 @@ module.exports = {
                 size: 512
 
             }),
+
 
 
             partner: "Нет пары",
