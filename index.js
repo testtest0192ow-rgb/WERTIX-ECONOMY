@@ -1,70 +1,5 @@
-import { Client, GatewayIntentBits, Collection, REST, Routes, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 'discord.js';
-import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// index.js - обработчик кнопок (только нужная часть)
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!TOKEN || !CLIENT_ID || !MONGODB_URI) {
-  console.error('❌ Не все переменные заданы!');
-  process.exit(1);
-}
-
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMembers
-  ]
-});
-
-client.commands = new Collection();
-
-// Загрузка команд
-const commands = [];
-const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
-
-for (const file of commandFiles) {
-  try {
-    const { data, execute } = await import(`./commands/${file}`);
-    if (data && execute) {
-      client.commands.set(data.name, { data, execute });
-      commands.push(data.toJSON());
-      console.log(`✅ ${data.name}`);
-    }
-  } catch (e) {
-    console.log(`❌ ${file}: ${e.message}`);
-  }
-}
-
-// Регистрация
-if (commands.length) {
-  const rest = new REST({ version: '10' }).setToken(TOKEN);
-  try {
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log(`✅ Зарегистрировано ${commands.length} команд`);
-  } catch (e) {
-    console.error('❌ Регистрация:', e);
-  }
-}
-
-// MongoDB
-try {
-  await mongoose.connect(MONGODB_URI);
-  console.log('✅ MongoDB');
-} catch (e) {
-  console.error('❌ MongoDB:', e);
-}
-
-// Обработка
 client.on('interactionCreate', async interaction => {
   if (interaction.isChatInputCommand()) {
     const cmd = client.commands.get(interaction.commandName);
@@ -104,7 +39,10 @@ client.on('interactionCreate', async interaction => {
       });
       
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`back_${user.id}`).setLabel('Обычный профиль').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder()
+          .setCustomId(`back_${user.id}`)
+          .setLabel('Обычный профиль')  // ← БЕЗ ЭМОДЗИ
+          .setStyle(ButtonStyle.Secondary)
       );
       
       await interaction.reply({
@@ -125,6 +63,3 @@ client.on('interactionCreate', async interaction => {
     }
   }
 });
-
-client.login(TOKEN);
-console.log('🚀 Запуск...');
