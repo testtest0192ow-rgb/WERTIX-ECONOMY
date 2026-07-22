@@ -18,11 +18,9 @@ module.exports = {
         .setDescription("Показать профиль пользователя"),
 
 
-
     async execute(interaction) {
 
 
-        // даём Discord понять, что бот обрабатывает запрос
         await interaction.deferReply();
 
 
@@ -31,11 +29,10 @@ module.exports = {
 
 
 
-        // временные данные
-        // позже заменим на MongoDB
+        // Данные пользователя
+        // Потом сюда подключим MongoDB
 
         const userData = {
-
 
             username: user.username,
 
@@ -44,37 +41,37 @@ module.exports = {
 
                 extension: "png",
 
-                size: 256
+                size: 512
 
             }),
-
 
 
             joinDate: "22.07.2026",
 
 
-
-            balance: "5 000 000",
-
+            balance: 0,
 
 
-            streak: 25,
+            timely: 0,
 
 
-
-            marriage: "Нет",
-
+            marriage: "Не состоит в браке",
 
 
-            voice: 240,
+            voice: "0ч 0м",
 
 
-
-            messages: "12 500",
-
+            messages: 0,
 
 
-            level: 15
+            level: 1,
+
+
+            xp: 0,
+
+
+            maxXp: 100
+
 
         };
 
@@ -86,15 +83,12 @@ module.exports = {
 
 
 
-
         const file = new AttachmentBuilder(
 
             image,
 
             {
-
                 name: "profile.png"
-
             }
 
         );
@@ -103,10 +97,9 @@ module.exports = {
 
 
 
-        const button = new ActionRowBuilder()
+        const buttons = new ActionRowBuilder()
 
             .addComponents(
-
 
                 new ButtonBuilder()
 
@@ -118,32 +111,17 @@ module.exports = {
 
                     .setStyle(ButtonStyle.Secondary)
 
-
             );
 
 
 
 
 
-
-        // вместо reply используем editReply после deferReply
-
         await interaction.editReply({
 
+            files: [file],
 
-            files: [
-
-                file
-
-            ],
-
-
-            components: [
-
-                button
-
-            ]
-
+            components: [buttons]
 
         });
 
