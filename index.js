@@ -1,120 +1,62 @@
-const {
-    Client,
-    GatewayIntentBits,
-    Collection
-} = require("discord.js");
-
-const fs = require("fs");
-
-const client = new Client({
-
-    intents: [
-
-        GatewayIntentBits.Guilds,
-
-        GatewayIntentBits.GuildMessages,
-
-        GatewayIntentBits.MessageContent,
-
-        GatewayIntentBits.GuildMembers
-
-    ]
-
-});
-
-
-
-client.commands = new Collection();
-
-
-
-// загрузка команд
-
-const commandFiles = fs.readdirSync("./commands")
-    .filter(file => file.endsWith(".js"));
-
-
-for (const file of commandFiles) {
-
-    const command = require(`./commands/${file}`);
-
-    client.commands.set(
-        command.data.name,
-        command
-    );
-
-}
-
-
-
-client.once("clientReady", () => {
-
-    console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
-
-});
-
-
-
-
-// команды
-
 client.on("interactionCreate", async interaction => {
 
 
-    if (!interaction.isChatInputCommand()) return;
+    // ==========================
+    // SLASH КОМАНДЫ
+    // ==========================
+
+    if (interaction.isChatInputCommand()) {
+
+
+        const command = client.commands.get(
+            interaction.commandName
+        );
+
+
+        if (!command) return;
 
 
 
-    const command = client.commands.get(
-        interaction.commandName
-    );
+        try {
+
+
+            await command.execute(interaction);
 
 
 
-    if (!command) return;
+        } catch (error) {
+
+
+            console.error(error);
 
 
 
-    try {
+            if (interaction.deferred) {
 
 
-        await command.execute(interaction);
+                await interaction.editReply({
 
+                    content: "❌ Произошла ошибка"
 
-
-    } catch (error) {
-
-
-        console.error(error);
+                });
 
 
 
-        // проверяем, отвечал ли уже Discord
-
-        if (interaction.replied || interaction.deferred) {
+            } else if (!interaction.replied) {
 
 
-            await interaction.followUp({
+                await interaction.reply({
 
-                content: "❌ Произошла ошибка",
+                    content: "❌ Произошла ошибка",
 
-                ephemeral: true
+                    ephemeral: true
 
-            });
+                });
 
 
 
-        } else {
+            }
 
-
-
-            await interaction.reply({
-
-                content: "❌ Произошла ошибка",
-
-                ephemeral: true
-
-            });
 
 
         }
@@ -123,56 +65,139 @@ client.on("interactionCreate", async interaction => {
     }
 
 
-});
+
+
+
+    // ==========================
+    // КНОПКИ
+    // ==========================
+
+    if (interaction.isButton()) {
+
+
+
+        try {
+
+
+
+            // Профиль любви
+
+            if (interaction.customId === "love_profile") {
+
+
+
+                await interaction.reply({
+
+
+                    content: "Профиль любви в разработке",
+
+
+                    ephemeral: true
+
+
+                });
+
+
+
+            }
 
 
 
 
-// кнопки
 
-client.on("interactionCreate", async interaction => {
+            // баланс - доходы
 
-
-    if (!interaction.isButton()) return;
+            if (interaction.customId === "balance_income") {
 
 
 
-    try {
+                await interaction.reply({
 
 
-        if (interaction.customId === "love_profile") {
+                    content: "Доходы пользователя",
 
 
-            await interaction.reply({
-
-                content: "💖 Профиль любви в разработке",
-
-                ephemeral: true
-
-            });
+                    ephemeral: true
 
 
-        }
+                });
 
 
 
-    } catch(error) {
-
-
-        console.error(error);
+            }
 
 
 
-        if (!interaction.replied) {
 
 
-            await interaction.reply({
+            // баланс - расходы
 
-                content: "❌ Ошибка кнопки",
+            if (interaction.customId === "balance_expenses") {
 
-                ephemeral: true
 
-            });
+
+                await interaction.reply({
+
+
+                    content: "Расходы пользователя",
+
+
+                    ephemeral: true
+
+
+                });
+
+
+
+            }
+
+
+
+
+
+            // баланс - выход
+
+            if (interaction.customId === "balance_exit") {
+
+
+
+                await interaction.message.delete();
+
+
+
+            }
+
+
+
+
+
+        } catch(error) {
+
+
+
+            console.error(error);
+
+
+
+            if (!interaction.replied) {
+
+
+
+                await interaction.reply({
+
+
+                    content: "❌ Ошибка кнопки",
+
+
+                    ephemeral: true
+
+
+                });
+
+
+
+            }
+
 
 
         }
@@ -181,8 +206,5 @@ client.on("interactionCreate", async interaction => {
     }
 
 
+
 });
-
-
-
-client.login(process.env.TOKEN);
