@@ -1,7 +1,44 @@
 require("dotenv").config();
 
 const mongoose = require("mongoose");
-const User = require("./models/User.js");
+
+const UserSchema = new mongoose.Schema({
+
+    userId: {
+        type: String,
+        required: true,
+        unique: true
+    },
+
+    coins: {
+        type: Number,
+        default: 0
+    },
+
+    messages: {
+        type: Number,
+        default: 0
+    },
+
+    voiceTime: {
+        type: Number,
+        default: 0
+    },
+
+    wins: {
+        type: Number,
+        default: 0
+    },
+
+    losses: {
+        type: Number,
+        default: 0
+    }
+
+});
+
+const User = mongoose.model("User", UserSchema);
+
 
 const {
     Client,
@@ -20,7 +57,6 @@ const client = new Client({
 });
 
 
-
 const commands = [
 
     new SlashCommandBuilder()
@@ -33,7 +69,6 @@ const commands = [
         .setDescription("Показать баланс монет")
 
 ].map(command => command.toJSON());
-
 
 
 const rest = new REST({
@@ -65,12 +100,9 @@ client.once("ready", async () => {
     }
 
 
-
     try {
 
-        await mongoose.connect(
-            process.env.MONGO_URI
-        );
+        await mongoose.connect(process.env.MONGO_URI);
 
         console.log("✅ MongoDB подключена");
 
@@ -85,12 +117,9 @@ client.once("ready", async () => {
 
 
 
-
-
 client.on("interactionCreate", async interaction => {
 
     if (!interaction.isChatInputCommand()) return;
-
 
 
     if (interaction.commandName === "ping") {
@@ -103,8 +132,6 @@ client.on("interactionCreate", async interaction => {
 
 
 
-
-
     if (interaction.commandName === "balance") {
 
 
@@ -113,7 +140,6 @@ client.on("interactionCreate", async interaction => {
             userId: interaction.user.id
 
         });
-
 
 
         if (!user) {
@@ -198,13 +224,9 @@ client.on("interactionCreate", async interaction => {
 
         });
 
-
     }
 
-
 });
-
-
 
 
 
