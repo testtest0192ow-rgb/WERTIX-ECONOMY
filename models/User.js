@@ -1,72 +1,43 @@
-const mongoose = require("mongoose");
+// models/User.js
+import mongoose from 'mongoose';
 
+const userSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  guildId: { type: String, required: true },
 
-const UserSchema = new mongoose.Schema({
+  // Экономика
+  balance: { type: Number, default: 0 },
+  bank: { type: Number, default: 0 },
+  lastDaily: { type: Date, default: null },
 
-    userId: {
-        type: String,
-        required: true,
-        unique: true
-    },
+  // Уровни
+  level: { type: Number, default: 0 },
+  xp: { type: Number, default: 0 },
+  totalXp: { type: Number, default: 0 },
 
+  // Репутация
+  reputation: { type: Number, default: 0 },
+  receivedReps: [{ type: String }],
 
-    coins: {
-        type: Number,
-        default: 0
-    },
+  // Голосовое время (в минутах)
+  voiceTime: { type: Number, default: 0 },
 
+  // Сообщения
+  messages: { type: Number, default: 0 },
 
-    timelyStreak: {
-        type: Number,
-        default: 0
-    },
+  // Профиль
+  background: { type: String, default: 'default' },
+  roleColor: { type: String, default: '#5865f2' },
+  about: { type: String, default: '' },
 
+  // ❤️ Любовный профиль
+  partnerId: { type: String, default: null },
+  loveLevel: { type: Number, default: 0 },
+  loveXp: { type: Number, default: 0 },
+  marriedAt: { type: Date, default: null },
 
-    lastTimely: {
-        type: Date,
-        default: null
-    },
+  // Доска почёта
+  topPosition: { type: Number, default: 0 }
+}, { timestamps: true });
 
-
-    messages: {
-        type: Number,
-        default: 0
-    },
-
-
-    voiceTime: {
-        type: Number,
-        default: 0
-    },
-
-
-    wins: {
-        type: Number,
-        default: 0
-    },
-
-
-    losses: {
-        type: Number,
-        default: 0
-    },
-
-
-    marriedTo: {
-        type: String,
-        default: null
-    },
-
-
-    marryDate: {
-        type: Date,
-        default: null
-    }
-
-});
-
-
-module.exports = mongoose.model(
-    "User",
-    UserSchema
-);
+export default mongoose.model('User', userSchema);
