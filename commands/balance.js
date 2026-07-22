@@ -19,7 +19,7 @@ module.exports = {
         .setName("balance")
 
         .setDescription(
-            "Показать баланс"
+            "Показать баланс пользователя"
         ),
 
 
@@ -58,12 +58,15 @@ module.exports = {
 
                     wins: 0,
 
-                    losses: 0
+                    losses: 0,
+
+                    streak: 0
 
                 });
 
 
             }
+
 
 
 
@@ -75,6 +78,7 @@ module.exports = {
                 interaction.user
 
             );
+
 
 
 
@@ -107,11 +111,13 @@ module.exports = {
 
 
 
+
+
         } catch (error) {
 
 
             console.log(
-                "BALANCE ERROR:",
+                "Balance error:",
                 error
             );
 
@@ -123,7 +129,7 @@ module.exports = {
                 await interaction.editReply({
 
                     content:
-                        "❌ Ошибка при создании баланса"
+                        "Произошла ошибка при загрузке баланса."
 
                 });
 
@@ -134,7 +140,7 @@ module.exports = {
                 await interaction.reply({
 
                     content:
-                        "❌ Ошибка",
+                        "Произошла ошибка.",
 
                     ephemeral:
                         true
