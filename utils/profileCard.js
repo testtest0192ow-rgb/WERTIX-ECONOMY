@@ -1,5 +1,14 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 
+const EMOJIS = {
+  money: '<:emoji_1:1529426390267723796>',
+  marriage: '<:emoji_2:1529430666792669214>',
+  voice: '<:emoji_3:1529430705304768672>',
+  level: '<:emoji_4:1529430822820778095>',
+  message: '<:emoji_5:1529430867426934874>',
+  heart: '<:emoji_6:1529430913396506705>'
+};
+
 export async function createProfileCard(user, member, stats) {
   const canvas = createCanvas(1000, 600);
   const ctx = canvas.getContext('2d');
@@ -66,10 +75,10 @@ export async function createProfileCard(user, member, stats) {
   const statusText = { online: 'В сети', idle: 'Не активен', dnd: 'Не беспокоить', offline: 'Не в сети' };
   ctx.fillText(statusText[status] || 'Не в сети', 310, 196);
 
-  // Уровень
+  // Уровень с кастомным эмодзи
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 28px sans-serif';
-  ctx.fillText(`🎯 ${stats.level}`, 280, 295);
+  ctx.fillText(`${EMOJIS.level} ${stats.level}`, 280, 295);
   ctx.fillStyle = '#b9bbbe';
   ctx.font = '14px sans-serif';
   ctx.fillText('УРОВЕНЬ', 280, 315);
@@ -91,28 +100,31 @@ export async function createProfileCard(user, member, stats) {
   ctx.font = '12px sans-serif';
   ctx.fillText(`${stats.xp} / ${stats.xpToNext} XP`, 430, 355);
 
-  // Статистика справа
+  // Статистика справа с кастомными эмодзи
   ctx.font = '18px sans-serif';
   ctx.fillStyle = '#ff6b9d';
-  ctx.fillText(`❤️ ${stats.reputation}`, 620, 120);
+  ctx.fillText(`${EMOJIS.heart} ${stats.reputation}`, 620, 120);
   ctx.fillStyle = '#72767d';
   ctx.font = '12px sans-serif';
   ctx.fillText('РЕПУТАЦИЯ', 620, 140);
+  
   ctx.fillStyle = '#43b581';
   ctx.font = '18px sans-serif';
-  ctx.fillText(`💰 ${stats.balance}₽`, 620, 175);
+  ctx.fillText(`${EMOJIS.money} ${stats.balance}₽`, 620, 175);
   ctx.fillStyle = '#72767d';
   ctx.font = '12px sans-serif';
   ctx.fillText('БАЛАНС', 620, 195);
+  
   ctx.fillStyle = '#faa61a';
   ctx.font = '18px sans-serif';
-  ctx.fillText(`🎙 ${Math.floor(stats.voiceTime / 60)}ч ${stats.voiceTime % 60}м`, 620, 230);
+  ctx.fillText(`${EMOJIS.voice} ${Math.floor(stats.voiceTime / 60)}ч ${stats.voiceTime % 60}м`, 620, 230);
   ctx.fillStyle = '#72767d';
   ctx.font = '12px sans-serif';
   ctx.fillText('ГОЛОС', 620, 250);
+  
   ctx.fillStyle = '#9b59b6';
   ctx.font = '18px sans-serif';
-  ctx.fillText(`💬 ${stats.messages}`, 620, 285);
+  ctx.fillText(`${EMOJIS.message} ${stats.messages}`, 620, 285);
   ctx.fillStyle = '#72767d';
   ctx.font = '12px sans-serif';
   ctx.fillText('СООБЩЕНИЙ', 620, 305);
