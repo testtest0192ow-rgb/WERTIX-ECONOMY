@@ -26,7 +26,7 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// 🔹 ЗАГРУЗКА КОМАНД (файлы прямо в папке commands)
+// 🔹 ЗАГРУЗКА КОМАНД
 const commands = [];
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
@@ -69,7 +69,7 @@ try {
   console.error('❌ Ошибка подключения к MongoDB:', error);
 }
 
-// 🔹 ОБРАБОТКА КОМАНД
+// 🔹 ОБРАБОТКА ВЗАИМОДЕЙСТВИЙ
 client.on('interactionCreate', async interaction => {
   // Слэш-команды
   if (interaction.isChatInputCommand()) {
@@ -89,25 +89,55 @@ client.on('interactionCreate', async interaction => {
 
   // Кнопки
   if (interaction.isButton()) {
-    if (interaction.customId === 'love_profile') {
+    // Любовный профиль (для конкретного пользователя)
+    if (interaction.customId.startsWith('love_profile_')) {
       try {
+        const userId = interaction.customId.replace('love_profile_', '');
+        const user = await interaction.client.users.fetch(userId);
+        
         const loveCommand = await import('./commands/love.js').then(m => m.default || m);
         if (loveCommand?.execute) {
-          await loveCommand.execute(interaction);
+          const fakeInteraction = {
+            ...interaction,
+            options: {
+              getUser: () => user,
+              get: () => null
+            }
+          };
+          await loveCommand.execute(fakeInteraction);
         }
       } catch (error) {
         console.error('❌ Ошибка love_profile:', error);
+        await interaction.reply({
+          content: '❌ Ошибка при открытии любовного профиля',
+          ephemeral: true
+        });
       }
     }
     
-    if (interaction.customId === 'back_to_profile') {
+    // Возврат в обычный профиль
+    if (interaction.customId.startsWith('back_to_profile_')) {
       try {
+        const userId = interaction.customId.replace('back_to_profile_', '');
+        const user = await interaction.client.users.fetch(userId);
+        
         const profileCommand = await import('./commands/profile.js').then(m => m.default || m);
         if (profileCommand?.execute) {
-          await profileCommand.execute(interaction);
+          const fakeInteraction = {
+            ...interaction,
+            options: {
+              getUser: () => user,
+              get: () => null
+            }
+          };
+          await profileCommand.execute(fakeInteraction);
         }
       } catch (error) {
         console.error('❌ Ошибка back_to_profile:', error);
+        await interaction.reply({
+          content: '❌ Ошибка при возврате в профиль',
+          ephemeral: true
+        });
       }
     }
   }
