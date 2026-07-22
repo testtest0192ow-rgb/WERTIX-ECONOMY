@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const mongoose = require("mongoose");
 
-const UserSchema = new mongoose.Schema({
+const User = mongoose.model("User", new mongoose.Schema({
 
     userId: {
         type: String,
@@ -35,9 +35,7 @@ const UserSchema = new mongoose.Schema({
         default: 0
     }
 
-});
-
-const User = mongoose.model("User", UserSchema);
+}));
 
 
 const {
@@ -71,6 +69,7 @@ const commands = [
 ].map(command => command.toJSON());
 
 
+
 const rest = new REST({
     version: "10"
 }).setToken(process.env.TOKEN);
@@ -100,6 +99,7 @@ client.once("ready", async () => {
     }
 
 
+
     try {
 
         await mongoose.connect(process.env.MONGO_URI);
@@ -117,9 +117,11 @@ client.once("ready", async () => {
 
 
 
+
 client.on("interactionCreate", async interaction => {
 
     if (!interaction.isChatInputCommand()) return;
+
 
 
     if (interaction.commandName === "ping") {
@@ -132,6 +134,7 @@ client.on("interactionCreate", async interaction => {
 
 
 
+
     if (interaction.commandName === "balance") {
 
 
@@ -140,6 +143,7 @@ client.on("interactionCreate", async interaction => {
             userId: interaction.user.id
 
         });
+
 
 
         if (!user) {
@@ -164,6 +168,7 @@ client.on("interactionCreate", async interaction => {
 
 
 
+
         const embed = new EmbedBuilder()
 
             .setColor("#2b2d31")
@@ -182,20 +187,32 @@ client.on("interactionCreate", async interaction => {
             .addFields(
 
                 {
-                    name: "Монеты",
+                    name: "🪙 Монеты",
                     value: `**${user.coins.toLocaleString()}**`,
                     inline: true
                 },
 
                 {
-                    name: "Сообщения",
+                    name: "💬 Сообщения",
                     value: `**${user.messages}**`,
                     inline: true
                 },
 
                 {
-                    name: "Время в ГС",
+                    name: "🎙️ Время в ГС",
                     value: `**${user.voiceTime} минут**`,
+                    inline: true
+                },
+
+                {
+                    name: "🏆 Победы",
+                    value: `**${user.wins}**`,
+                    inline: true
+                },
+
+                {
+                    name: "❌ Поражения",
+                    value: `**${user.losses}**`,
                     inline: true
                 }
 
@@ -225,6 +242,22 @@ client.on("interactionCreate", async interaction => {
         });
 
     }
+
+
+});
+
+
+
+client.on("error", error => {
+
+    console.log("❌ Discord Error:", error);
+
+});
+
+
+process.on("unhandledRejection", error => {
+
+    console.log("❌ Promise Error:", error);
 
 });
 
