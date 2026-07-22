@@ -1,5 +1,14 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 
+const EMOJIS = {
+  money: '<:emoji_1:1529426390267723796>',
+  marriage: '<:emoji_2:1529430666792669214>',
+  voice: '<:emoji_3:1529430705304768672>',
+  level: '<:emoji_4:1529430822820778095>',
+  message: '<:emoji_5:1529430867426934874>',
+  heart: '<:emoji_6:1529430913396506705>'
+};
+
 export async function createLoveCard(user, partner, stats) {
   const canvas = createCanvas(900, 500);
   const ctx = canvas.getContext('2d');
@@ -76,7 +85,7 @@ export async function createLoveCard(user, partner, stats) {
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 36px sans-serif';
   ctx.textBaseline = 'bottom';
-  ctx.fillText(`❤️ ${stats.loveLevel || 0}`, 450, 320);
+  ctx.fillText(`${EMOJIS.heart} ${stats.loveLevel || 0}`, 450, 320);
 
   const progress = Math.min((stats.loveXp || 0) / 1000, 1);
   ctx.fillStyle = 'rgba(255,255,255,0.2)';
@@ -101,18 +110,18 @@ export async function createLoveCard(user, partner, stats) {
   ctx.textBaseline = 'bottom';
   const h = Math.floor((stats.voiceTime || 0) / 60);
   const m = (stats.voiceTime || 0) % 60;
-  ctx.fillText(`🎙 Вместе: ${h}ч ${m}м    💬 Сообщений: ${stats.messages || 0}`, 450, 400);
+  ctx.fillText(`${EMOJIS.voice} Вместе: ${h}ч ${m}м    ${EMOJIS.message} Сообщений: ${stats.messages || 0}`, 450, 400);
 
   if (stats.marriedAt) {
     ctx.fillStyle = '#ffd700';
     ctx.font = '14px sans-serif';
-    ctx.fillText(`💍 Вместе с: ${new Date(stats.marriedAt).toLocaleDateString('ru-RU')}`, 450, 430);
+    ctx.fillText(`${EMOJIS.marriage} Вместе с: ${new Date(stats.marriedAt).toLocaleDateString('ru-RU')}`, 450, 430);
   }
 
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.font = '12px sans-serif';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('❤️ Любовный профиль ❤️', 450, 480);
+  ctx.fillText(`${EMOJIS.heart} Любовный профиль ${EMOJIS.heart}`, 450, 480);
 
   return canvas.toBuffer();
 }
