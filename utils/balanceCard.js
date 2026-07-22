@@ -1,13 +1,17 @@
 const { createCanvas, loadImage } = require("canvas");
 
 
+
 function roundRect(ctx, x, y, width, height, radius) {
 
     ctx.beginPath();
 
     ctx.moveTo(x + radius, y);
 
-    ctx.lineTo(x + width - radius, y);
+    ctx.lineTo(
+        x + width - radius,
+        y
+    );
 
     ctx.quadraticCurveTo(
         x + width,
@@ -58,6 +62,8 @@ function roundRect(ctx, x, y, width, height, radius) {
 
 
 
+
+
 async function createBalanceCard(user, discordUser) {
 
 
@@ -83,7 +89,13 @@ async function createBalanceCard(user, discordUser) {
 
     gradient.addColorStop(
         0,
-        "#111827"
+        "#0f172a"
+    );
+
+
+    gradient.addColorStop(
+        0.5,
+        "#1e293b"
     );
 
 
@@ -108,20 +120,21 @@ async function createBalanceCard(user, discordUser) {
 
 
 
-    // главная карточка
+
+    // карточка
 
 
     ctx.fillStyle =
-        "rgba(255,255,255,0.08)";
+        "rgba(255,255,255,0.07)";
 
 
     roundRect(
         ctx,
-        50,
-        50,
-        1100,
-        500,
-        40
+        60,
+        60,
+        1080,
+        480,
+        45
     );
 
 
@@ -129,17 +142,16 @@ async function createBalanceCard(user, discordUser) {
 
 
 
-    // рамка
-
 
     ctx.strokeStyle =
-        "rgba(255,255,255,0.2)";
+        "rgba(255,255,255,0.25)";
 
 
     ctx.lineWidth = 3;
 
 
     ctx.stroke();
+
 
 
 
@@ -153,9 +165,9 @@ async function createBalanceCard(user, discordUser) {
 
         discordUser.displayAvatarURL({
 
-            extension:"png",
+            extension: "png",
 
-            size:512
+            size: 512
 
         })
 
@@ -166,16 +178,21 @@ async function createBalanceCard(user, discordUser) {
     ctx.save();
 
 
-
     ctx.beginPath();
 
 
     ctx.arc(
-        230,
+
+        250,
+
         300,
-        110,
+
+        115,
+
         0,
+
         Math.PI * 2
+
     );
 
 
@@ -187,12 +204,16 @@ async function createBalanceCard(user, discordUser) {
 
         avatar,
 
-        120,
-        190,
-        220,
-        220
+        135,
+
+        185,
+
+        230,
+
+        230
 
     );
+
 
 
     ctx.restore();
@@ -201,26 +222,34 @@ async function createBalanceCard(user, discordUser) {
 
 
 
-    // круг вокруг аватара
+
+    // рамка аватара
 
 
     ctx.beginPath();
 
 
     ctx.arc(
-        230,
+
+        250,
+
         300,
-        120,
+
+        125,
+
         0,
+
         Math.PI * 2
+
     );
 
 
     ctx.strokeStyle =
-        "#ffffff";
+        "#818cf8";
 
 
-    ctx.lineWidth = 5;
+    ctx.lineWidth =
+        6;
 
 
     ctx.stroke();
@@ -246,7 +275,8 @@ async function createBalanceCard(user, discordUser) {
 
         discordUser.username,
 
-        420,
+        430,
+
         180
 
     );
@@ -256,24 +286,24 @@ async function createBalanceCard(user, discordUser) {
 
 
 
-
-    // баланс
+    // заголовок
 
 
     ctx.fillStyle =
-        "#c7d2fe";
+        "#cbd5e1";
 
 
     ctx.font =
-        "35px Arial";
+        "32px Arial";
 
 
     ctx.fillText(
 
         "Баланс",
 
-        420,
-        260
+        430,
+
+        250
 
     );
 
@@ -291,15 +321,44 @@ async function createBalanceCard(user, discordUser) {
 
 
     ctx.font =
-        "bold 70px Arial";
+        "bold 75px Arial";
 
 
     ctx.fillText(
 
-        `🪙 ${user.coins.toLocaleString()}`,
+        user.coins
+        .toLocaleString(),
 
-        420,
+        430,
+
         350
+
+    );
+
+
+
+
+
+
+
+    // подпись
+
+
+    ctx.fillStyle =
+        "#94a3b8";
+
+
+    ctx.font =
+        "28px Arial";
+
+
+    ctx.fillText(
+
+        "Монеты",
+
+        435,
+
+        395
 
     );
 
@@ -317,16 +376,17 @@ async function createBalanceCard(user, discordUser) {
 
 
     ctx.font =
-        "28px Arial";
+        "26px Arial";
 
 
 
     ctx.fillText(
 
-        "👤 Статус: Пользователь",
+        "Уровень 1",
 
-        420,
-        430
+        430,
+
+        470
 
     );
 
@@ -334,31 +394,15 @@ async function createBalanceCard(user, discordUser) {
 
     ctx.fillText(
 
-        "⭐ Уровень: 1",
+        "Активный пользователь",
 
-        420,
-        480
+        650,
 
-    );
-
-
-
-    ctx.fillStyle =
-        "#a5b4fc";
-
-
-    ctx.font =
-        "24px Arial";
-
-
-    ctx.fillText(
-
-        "Экономика",
-
-        900,
-        500
+        470
 
     );
+
+
 
 
 
@@ -367,6 +411,8 @@ async function createBalanceCard(user, discordUser) {
     return canvas.toBuffer();
 
 }
+
+
 
 
 
