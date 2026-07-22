@@ -1,55 +1,180 @@
+const {
+    Client,
+    GatewayIntentBits,
+    Collection,
+    AttachmentBuilder
+} = require("discord.js");
+
+const fs = require("fs");
+const path = require("path");
+
+const createLoveCard = require("./utils/loveCard");
+
+
+const client = new Client({
+
+    intents: [
+
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+
+    ]
+
+});
+
+
+
+client.commands = new Collection();
+
+
+
+// загрузка команд
+
+const commandsPath = path.join(__dirname, "commands");
+
+const commandFiles = fs
+    .readdirSync(commandsPath)
+    .filter(file => file.endsWith(".js"));
+
+
+
+for (const file of commandFiles) {
+
+    const command = require(`./commands/${file}`);
+
+    client.commands.set(
+        command.data.name,
+        command
+    );
+
+}
+
+
+
+client.once("ready", () => {
+
+    console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
+
+});
+
+
+
+
+// обработчик команд + кнопок
+
 client.on("interactionCreate", async interaction => {
 
 
-    // ==========================
-    // SLASH КОМАНДЫ
-    // ==========================
-
-    if (interaction.isChatInputCommand()) {
+    try {
 
 
-        const command = client.commands.get(
-            interaction.commandName
-        );
+        // Slash команды
+
+        if (interaction.isChatInputCommand()) {
 
 
-        if (!command) return;
+            const command = client.commands.get(
+                interaction.commandName
+            );
 
 
-
-        try {
-
-
-            await command.execute(interaction);
+            if (!command) return;
 
 
+            await command.execute(
+                interaction
+            );
 
-        } catch (error) {
 
-
-            console.error(error);
+        }
 
 
 
-            if (interaction.deferred) {
+
+        // Кнопки
+
+        if (interaction.isButton()) {
 
 
-                await interaction.editReply({
 
-                    content: "❌ Произошла ошибка"
+            // кнопка профиль любви
 
+            if (interaction.customId === "love_profile") {
+
+
+
+                await interaction.deferReply({
+                    ephemeral: true
                 });
 
 
 
-            } else if (!interaction.replied) {
+                const user = interaction.user;
 
 
-                await interaction.reply({
 
-                    content: "❌ Произошла ошибка",
+                const loveData = {
 
-                    ephemeral: true
+
+                    username: user.username,
+
+
+                    avatar: user.displayAvatarURL({
+
+                        extension: "png",
+
+                        size: 512
+
+                    }),
+
+
+
+                    partner: "Нет пары",
+
+
+                    status: "Свободен",
+
+
+                    startDate: "—",
+
+
+                    days: 0,
+
+
+                    loveLevel: 1,
+
+
+                    loveXp: 0
+
+
+                };
+
+
+
+                const image = await createLoveCard(
+                    loveData
+                );
+
+
+
+                const file = new AttachmentBuilder(
+
+                    image,
+
+                    {
+                        name: "love-profile.png"
+                    }
+
+                );
+
+
+
+                await interaction.editReply({
+
+                    files: [
+                        file
+                    ]
 
                 });
 
@@ -62,142 +187,35 @@ client.on("interactionCreate", async interaction => {
         }
 
 
-    }
 
+    } catch (error) {
 
 
+        console.error(error);
 
 
-    // ==========================
-    // КНОПКИ
-    // ==========================
 
-    if (interaction.isButton()) {
+        if (interaction.deferred || interaction.replied) {
 
 
+            await interaction.editReply({
 
-        try {
+                content: "❌ Произошла ошибка"
 
+            });
 
 
-            // Профиль любви
 
-            if (interaction.customId === "love_profile") {
+        } else {
 
 
+            await interaction.reply({
 
-                await interaction.reply({
+                content: "❌ Произошла ошибка",
 
+                ephemeral: true
 
-                    content: "Профиль любви в разработке",
-
-
-                    ephemeral: true
-
-
-                });
-
-
-
-            }
-
-
-
-
-
-            // баланс - доходы
-
-            if (interaction.customId === "balance_income") {
-
-
-
-                await interaction.reply({
-
-
-                    content: "Доходы пользователя",
-
-
-                    ephemeral: true
-
-
-                });
-
-
-
-            }
-
-
-
-
-
-            // баланс - расходы
-
-            if (interaction.customId === "balance_expenses") {
-
-
-
-                await interaction.reply({
-
-
-                    content: "Расходы пользователя",
-
-
-                    ephemeral: true
-
-
-                });
-
-
-
-            }
-
-
-
-
-
-            // баланс - выход
-
-            if (interaction.customId === "balance_exit") {
-
-
-
-                await interaction.message.delete();
-
-
-
-            }
-
-
-
-
-
-        } catch(error) {
-
-
-
-            console.error(error);
-
-
-
-            if (!interaction.replied) {
-
-
-
-                await interaction.reply({
-
-
-                    content: "❌ Ошибка кнопки",
-
-
-                    ephemeral: true
-
-
-                });
-
-
-
-            }
-
+            });
 
 
         }
@@ -208,3 +226,9 @@ client.on("interactionCreate", async interaction => {
 
 
 });
+
+
+
+
+
+client.login(process.env.TOKEN);
