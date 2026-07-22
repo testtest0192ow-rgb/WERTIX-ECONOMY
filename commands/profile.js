@@ -1,114 +1,118 @@
 const {
     SlashCommandBuilder,
-    EmbedBuilder
+    AttachmentBuilder
 } = require("discord.js");
 
 const User = require("../models/User");
+const createProfileCard = require("../utils/profileCard");
+
 
 module.exports = {
 
     data: new SlashCommandBuilder()
+
         .setName("profile")
         .setDescription("Посмотреть профиль игрока")
+
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription("Профиль другого пользователя")
+                .setDescription("Посмотреть профиль другого пользователя")
                 .setRequired(false)
         ),
 
 
+
     async execute(interaction) {
 
-        const target = interaction.options.getUser("user") || interaction.user;
+        try {
+
+            const target =
+                interaction.options.getUser("user")
+                || interaction.user;
 
 
-        let user = await User.findOne({
-            userId: target.id
-        });
 
-
-        if (!user) {
-
-            user = await User.create({
-                userId: target.id,
-                coins: 0,
-                messages: 0,
-                voiceTime: 0,
-                streak: 0
+            let user = await User.findOne({
+                userId: target.id
             });
 
+
+
+            if (!user) {
+
+                user = await User.create({
+
+                    userId: target.id,
+
+                    coins: 0,
+
+                    streak: 0,
+
+                    messages: 0,
+
+                    voiceTime: 0
+
+                });
+
+            }
+
+
+
+            const image = await createProfileCard(
+                target,
+                {
+
+                    coins: user.coins || 0,
+
+                    streak: user.streak || 0,
+
+                    messages: user.messages || 0,
+
+                    voiceTime: user.voiceTime || 0
+
+                }
+            );
+
+
+
+            const attachment = new AttachmentBuilder(
+                image,
+                {
+                    name: "profile.png"
+                }
+            );
+
+
+
+            await interaction.reply({
+
+                files: [attachment]
+
+            });
+
+
+
+        } catch (error) {
+
+
+            console.error("Profile error:", error);
+
+
+            if (!interaction.replied) {
+
+                await interaction.reply({
+
+                    content: "❌ Не удалось загрузить профиль",
+
+                    ephemeral: true
+
+                });
+
+            }
+
         }
-
-
-        const avatar = target.displayAvatarURL({
-            extension: "png",
-            size: 512
-        });
-
-
-        const coins = user.coins || 0;
-        const messages = user.messages || 0;
-        const voice = user.voiceTime || 0;
-        const streak = user.streak || 0;
-
-
-        let flame = "🔥";
-
-        if (streak >= 30) {
-            flame = "🔥✨";
-        }
-
-        if (streak >= 100) {
-            flame = "🔥👑";
-        }
-
-
-        const level = Math.floor(messages / 100) + 1;
-
-
-
-        const embed = new EmbedBuilder()
-
-            .setColor("#FFD700")
-
-            .setAuthor({
-                name: target.username,
-                iconURL: avatar
-            })
-
-            .setThumbnail(avatar)
-
-            .setDescription(
-`
-💰 **Монеты**
-\`${coins.toLocaleString()}\`
-
-${flame} **Стрик**
-\`${streak} дней\`
-
-💬 **Сообщения**
-\`${messages.toLocaleString()}\`
-
-🎧 **Голосовое время**
-\`${voice} минут\`
-
-⭐ **Уровень**
-\`${level}\`
-`
-            )
-
-            .setFooter({
-                text: "Профиль игрока"
-            })
-
-            .setTimestamp();
-
-
-
-        await interaction.reply({
-            embeds: [embed]
-        });
 
     }
+
 };
