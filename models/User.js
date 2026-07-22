@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const mongoose = require("mongoose");
-const User = require("./models/User");
+const User = require("./models/User.js");
 
 const {
     Client,
@@ -20,13 +20,12 @@ const client = new Client({
 });
 
 
-// Команды WERTIX
 
 const commands = [
 
     new SlashCommandBuilder()
         .setName("ping")
-        .setDescription("Проверка работы бота"),
+        .setDescription("Проверка работы WERTIX"),
 
 
     new SlashCommandBuilder()
@@ -43,43 +42,27 @@ const rest = new REST({
 
 
 
-
-
 client.once("ready", async () => {
 
-
     console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
-
 
 
     try {
 
         await rest.put(
-
-            Routes.applicationCommands(
-                client.user.id
-            ),
-
+            Routes.applicationCommands(client.user.id),
             {
                 body: commands
             }
-
         );
-
 
         console.log("✅ Команды загружены");
 
-
     } catch (error) {
 
-        console.log(
-            "❌ Ошибка команд:",
-            error
-        );
+        console.log("❌ Ошибка команд:", error);
 
     }
-
-
 
 
 
@@ -89,23 +72,14 @@ client.once("ready", async () => {
             process.env.MONGO_URI
         );
 
-
-        console.log(
-            "✅ MongoDB подключена"
-        );
+        console.log("✅ MongoDB подключена");
 
 
-    } catch(error) {
+    } catch (error) {
 
-
-        console.log(
-            "❌ Ошибка MongoDB:",
-            error
-        );
-
+        console.log("❌ Ошибка MongoDB:", error);
 
     }
-
 
 });
 
@@ -113,31 +87,17 @@ client.once("ready", async () => {
 
 
 
+client.on("interactionCreate", async interaction => {
 
-
-client.on(
-    "interactionCreate",
-    async interaction => {
-
-
-    if (!interaction.isChatInputCommand())
-        return;
+    if (!interaction.isChatInputCommand()) return;
 
 
 
-
-
-    // PING
-
-    if (
-        interaction.commandName === "ping"
-    ) {
-
+    if (interaction.commandName === "ping") {
 
         return interaction.reply({
             content: "🏓 WERTIX работает!"
         });
-
 
     }
 
@@ -145,15 +105,7 @@ client.on(
 
 
 
-
-
-
-    // BALANCE
-
-    if (
-        interaction.commandName === "balance"
-    ) {
-
+    if (interaction.commandName === "balance") {
 
 
         let user = await User.findOne({
@@ -164,10 +116,7 @@ client.on(
 
 
 
-
-
         if (!user) {
-
 
             user = await User.create({
 
@@ -185,117 +134,72 @@ client.on(
 
             });
 
-
         }
-
-
-
 
 
 
         const embed = new EmbedBuilder()
 
-
             .setColor("#2b2d31")
-
 
             .setAuthor({
 
-                name:
-                interaction.user.username,
+                name: interaction.user.username,
 
-                iconURL:
-                interaction.user.displayAvatarURL({
-                    dynamic: true
-                })
+                iconURL: interaction.user.displayAvatarURL()
 
             })
 
-
-
-            .setTitle(
-                "💰 WERTIX Balance"
-            )
-
+            .setTitle("💰 WERTIX Balance")
 
 
             .addFields(
 
-
                 {
                     name: "Монеты",
-
-                    value:
-                    `**${user.coins.toLocaleString()}**`,
-
+                    value: `**${user.coins.toLocaleString()}**`,
                     inline: true
-
                 },
-
 
                 {
                     name: "Сообщения",
-
-                    value:
-                    `**${user.messages}**`,
-
+                    value: `**${user.messages}**`,
                     inline: true
-
                 },
-
 
                 {
                     name: "Время в ГС",
-
-                    value:
-                    `**${user.voiceTime} мин.**`,
-
+                    value: `**${user.voiceTime} минут**`,
                     inline: true
-
                 }
 
-
             )
-
 
 
             .setThumbnail(
-
-                interaction.user.displayAvatarURL({
-                    dynamic: true
-                })
-
+                interaction.user.displayAvatarURL()
             )
-
 
 
             .setFooter({
 
-                text:
-                "WERTIX Economy"
+                text: "WERTIX Economy"
 
             })
-
 
 
             .setTimestamp();
 
 
 
-
-
         return interaction.reply({
 
-            embeds: [
-                embed
-            ]
+            embeds: [embed]
 
         });
 
 
-
     }
-
 
 
 });
@@ -304,8 +208,4 @@ client.on(
 
 
 
-
-
-client.login(
-    process.env.TOKEN
-);
+client.login(process.env.TOKEN);
