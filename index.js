@@ -1,234 +1,106 @@
-const {
-    Client,
-    GatewayIntentBits,
-    Collection,
-    AttachmentBuilder
-} = require("discord.js");
+// index.js
+import { Client, GatewayIntentBits, Collection, REST, Routes } from 'discord.js';
+import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const fs = require("fs");
-const path = require("path");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const createLoveCard = require("./utils/loveCard");
+// 🔹 Конфиг
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-
+// 🔹 Создаём клиента
 const client = new Client({
-
-    intents: [
-
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-
-    ]
-
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers
+  ]
 });
-
-
 
 client.commands = new Collection();
 
+// 🔹 ЗАГРУЗКА КОМАНД (правильный способ для ESM)
+const commands = [];
+const commandFolders = fs.readdirSync('./commands');
 
-
-// загрузка команд
-
-const commandsPath = path.join(__dirname, "commands");
-
-const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter(file => file.endsWith(".js"));
-
-
-
-for (const file of commandFiles) {
-
-    const command = require(`./commands/${file}`);
-
-    client.commands.set(
-        command.data.name,
-        command
-    );
-
+for (const folder of commandFolders) {
+  const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
+  
+  for (const file of commandFiles) {
+    const filePath = path.join(process.cwd(), 'commands', folder, file);
+    const command = await import(`file://${filePath}`).then(m => m.default || m);
+    
+    if (command?.data && command?.execute) {
+      client.commands.set(command.data.name, command);
+      commands.push(command.data.toJSON());
+      console.log(`✅ Загружена команда: ${command.data.name}`);
+    } else {
+      console.log(`⚠️ Ошибка в файле: ${file} — нет data или execute`);
+    }
+  }
 }
 
+// 🔹 РЕГИСТРАЦИЯ СЛЭШ-КОМАНД
+const rest = new REST({ version: '10' }).setToken(TOKEN);
+try {
+  console.log('🔄 Регистрация команд...');
+  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  console.log(`✅ Зарегистрировано ${commands.length} команд`);
+} catch (error) {
+  console.error('❌ Ошибка регистрации:', error);
+}
 
+// 🔹 ПОДКЛЮЧЕНИЕ БД
+try {
+  await mongoose.connect(MONGODB_URI);
+  console.log('✅ MongoDB подключена');
+} catch (error) {
+  console.error('❌ Ошибка подключения к MongoDB:', error);
+}
 
-client.once("ready", () => {
-
-    console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
-
-});
-
-
-
-
-// обработчик команд + кнопок
-
-client.on("interactionCreate", async interaction => {
-
-
+// 🔹 ОБРАБОТКА КОМАНД
+client.on('interactionCreate', async interaction => {
+  // Слэш-команды
+  if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+    
     try {
-
-
-        // Slash команды
-
-        if (interaction.isChatInputCommand()) {
-
-
-            const command = client.commands.get(
-                interaction.commandName
-            );
-
-
-            if (!command) return;
-
-
-            await command.execute(
-                interaction
-            );
-
-
-        }
-
-
-
-
-        // Кнопки
-
-        if (interaction.isButton()) {
-
-
-
-            // кнопка профиль любви
-
-            if (interaction.customId === "love_profile") {
-
-
-
-                await interaction.deferReply({
-                    ephemeral: true
-                });
-
-
-
-                const user = interaction.user;
-
-
-
-                const loveData = {
-
-
-                    username: user.username,
-
-
-                    avatar: user.displayAvatarURL({
-
-                        extension: "png",
-
-                        size: 512
-
-                    }),
-
-
-
-                    partner: "Нет пары",
-
-
-                    status: "Свободен",
-
-
-                    startDate: "—",
-
-
-                    days: 0,
-
-
-                    loveLevel: 1,
-
-
-                    loveXp: 0
-
-
-                };
-
-
-
-                const image = await createLoveCard(
-                    loveData
-                );
-
-
-
-                const file = new AttachmentBuilder(
-
-                    image,
-
-                    {
-                        name: "love-profile.png"
-                    }
-
-                );
-
-
-
-                await interaction.editReply({
-
-                    files: [
-                        file
-                    ]
-
-                });
-
-
-
-            }
-
-
-
-        }
-
-
-
+      await command.execute(interaction);
     } catch (error) {
-
-
-        console.error(error);
-
-
-
-        if (interaction.deferred || interaction.replied) {
-
-
-            await interaction.editReply({
-
-                content: "❌ Произошла ошибка"
-
-            });
-
-
-
-        } else {
-
-
-            await interaction.reply({
-
-                content: "❌ Произошла ошибка",
-
-                ephemeral: true
-
-            });
-
-
-        }
-
-
+      console.error(`❌ Ошибка в команде ${interaction.commandName}:`, error);
+      await interaction.reply({
+        content: '❌ Произошла ошибка при выполнении команды',
+        ephemeral: true
+      });
     }
+  }
 
-
-
+  // Кнопки
+  if (interaction.isButton()) {
+    if (interaction.customId === 'love_profile') {
+      const loveCommand = await import('./commands/love.js').then(m => m.default || m);
+      if (loveCommand?.execute) {
+        await loveCommand.execute(interaction);
+      }
+    }
+    
+    if (interaction.customId === 'back_to_profile') {
+      const profileCommand = await import('./commands/profile.js').then(m => m.default || m);
+      if (profileCommand?.execute) {
+        await profileCommand.execute(interaction);
+      }
+    }
+  }
 });
 
-
-
-
-
-client.login(process.env.TOKEN);
+// 🔹 ЛОГИН
+client.login(TOKEN);
+console.log('🚀 Бот запускается...');
