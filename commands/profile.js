@@ -6,19 +6,30 @@ const {
 const User = require("../models/User");
 
 module.exports = {
+
     data: new SlashCommandBuilder()
         .setName("profile")
-        .setDescription("Показать профиль игрока"),
+        .setDescription("Посмотреть профиль игрока")
+        .addUserOption(option =>
+            option
+                .setName("user")
+                .setDescription("Профиль другого пользователя")
+                .setRequired(false)
+        ),
+
 
     async execute(interaction) {
 
-        const target = interaction.user;
+        const target = interaction.options.getUser("user") || interaction.user;
+
 
         let user = await User.findOne({
             userId: target.id
         });
 
+
         if (!user) {
+
             user = await User.create({
                 userId: target.id,
                 coins: 0,
@@ -26,7 +37,9 @@ module.exports = {
                 voiceTime: 0,
                 streak: 0
             });
+
         }
+
 
         const avatar = target.displayAvatarURL({
             extension: "png",
@@ -43,20 +56,29 @@ module.exports = {
         let flame = "🔥";
 
         if (streak >= 30) {
-            flame = "✨🔥";
-        } 
-        else if (streak >= 7) {
             flame = "🔥✨";
         }
 
+        if (streak >= 100) {
+            flame = "🔥👑";
+        }
+
+
+        const level = Math.floor(messages / 100) + 1;
+
+
 
         const embed = new EmbedBuilder()
+
             .setColor("#FFD700")
+
             .setAuthor({
                 name: target.username,
                 iconURL: avatar
             })
+
             .setThumbnail(avatar)
+
             .setDescription(
 `
 💰 **Монеты**
@@ -68,21 +90,25 @@ ${flame} **Стрик**
 💬 **Сообщения**
 \`${messages.toLocaleString()}\`
 
-🎧 **Время в голосовых**
+🎧 **Голосовое время**
 \`${voice} минут\`
 
-🏆 **Уровень**
-\`${Math.floor(messages / 100) + 1}\`
+⭐ **Уровень**
+\`${level}\`
 `
             )
+
             .setFooter({
                 text: "Профиль игрока"
             })
+
             .setTimestamp();
+
 
 
         await interaction.reply({
             embeds: [embed]
         });
+
     }
 };
