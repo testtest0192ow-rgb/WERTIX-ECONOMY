@@ -1,10 +1,14 @@
 const {
     SlashCommandBuilder,
-    EmbedBuilder
+    AttachmentBuilder
 } = require("discord.js");
 
 
 const User = require("../models/User.js");
+
+const {
+    createBalanceCard
+} = require("../utils/balanceCard.js");
 
 
 
@@ -23,6 +27,11 @@ module.exports = {
 
 
     async execute(interaction) {
+
+
+        // даём Discord время на создание картинки
+        await interaction.deferReply();
+
 
 
         let user = await User.findOne({
@@ -52,92 +61,42 @@ module.exports = {
 
 
 
-        const embed = new EmbedBuilder()
+        const image = await createBalanceCard(
 
+            user,
 
-            .setColor("#2b2d31")
+            interaction.user
 
-
-            .setAuthor({
-
-                name:
-                interaction.user.username,
-
-                iconURL:
-                interaction.user.displayAvatarURL({
-                    size: 512
-                })
-
-            })
-
-
-            .setTitle(
-                "💰 WERTIX Balance"
-            )
-
-
-
-            .setThumbnail(
-
-                interaction.user.displayAvatarURL({
-                    size:512
-                })
-
-            )
-
-
-
-            .addFields(
-
-                {
-
-                    name:
-                    "🪙 Монеты",
-
-                    value:
-                    `**${user.coins.toLocaleString()}**`,
-
-                    inline:true
-
-                },
-
-                {
-
-                    name:
-                    "🔥 Timely стрик",
-
-                    value:
-                    `${user.timelyStreak} дней`,
-
-                    inline:true
-
-                }
-
-
-            )
-
-
-
-            .setFooter({
-
-                text:
-                "WERTIX Economy"
-
-            })
-
-
-
-            .setTimestamp();
+        );
 
 
 
 
 
 
-        await interaction.reply({
+        const attachment = new AttachmentBuilder(
 
-            embeds:[
-                embed
+            image,
+
+            {
+
+                name: "wertix-balance.png"
+
+            }
+
+        );
+
+
+
+
+
+
+        await interaction.editReply({
+
+            files: [
+
+                attachment
+
             ]
 
         });
