@@ -1,24 +1,23 @@
-require("dotenv").config();
-
-const mongoose = require("mongoose");
-const fs = require("fs");
-
 const {
     Client,
     GatewayIntentBits,
-    Collection,
-    REST,
-    Routes
+    Collection
 } = require("discord.js");
 
+const fs = require("fs");
 
 const client = new Client({
 
     intents: [
+
         GatewayIntentBits.Guilds,
+
         GatewayIntentBits.GuildMessages,
+
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates
+
+        GatewayIntentBits.GuildMembers
+
     ]
 
 });
@@ -29,9 +28,10 @@ client.commands = new Collection();
 
 
 
+// загрузка команд
+
 const commandFiles = fs.readdirSync("./commands")
     .filter(file => file.endsWith(".js"));
-
 
 
 for (const file of commandFiles) {
@@ -47,145 +47,72 @@ for (const file of commandFiles) {
 
 
 
+client.once("clientReady", () => {
 
-const rest = new REST({
-
-    version: "10"
-
-}).setToken(process.env.TOKEN);
-
-
-
-
-
-client.once("ready", async () => {
-
-
-    console.log(
-        `✅ WERTIX онлайн: ${client.user.tag}`
-    );
-
-
-
-    try {
-
-
-        await mongoose.connect(
-            process.env.MONGO_URI
-        );
-
-
-        console.log(
-            "✅ MongoDB подключена"
-        );
-
-
-
-    } catch(error) {
-
-
-        console.log(
-            "❌ MongoDB ошибка:",
-            error
-        );
-
-
-    }
-
-
-
-
-
-    try {
-
-
-        await rest.put(
-
-            Routes.applicationCommands(
-                client.user.id
-            ),
-
-            {
-
-                body: client.commands.map(
-                    cmd => cmd.data.toJSON()
-                )
-
-            }
-
-        );
-
-
-        console.log(
-            "✅ Команды загружены"
-        );
-
-
-    } catch(error) {
-
-
-        console.log(
-            "❌ Ошибка команд:",
-            error
-        );
-
-
-    }
-
+    console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
 
 });
 
 
 
 
+// команды
 
-client.on(
-"interactionCreate",
-async interaction => {
+client.on("interactionCreate", async interaction => {
 
 
-    if (!interaction.isChatInputCommand())
-        return;
+    if (!interaction.isChatInputCommand()) return;
 
 
 
-    const command =
-        client.commands.get(
-            interaction.commandName
-        );
+    const command = client.commands.get(
+        interaction.commandName
+    );
 
 
 
-    if (!command)
-        return;
+    if (!command) return;
 
 
 
     try {
 
 
-        await command.execute(
-            interaction
-        );
+        await command.execute(interaction);
 
 
 
-    } catch(error) {
+    } catch (error) {
 
 
-        console.log(error);
+        console.error(error);
 
 
 
-        if (!interaction.replied) {
+        // проверяем, отвечал ли уже Discord
+
+        if (interaction.replied || interaction.deferred) {
 
 
-            interaction.reply({
+            await interaction.followUp({
 
-                content:
-                "❌ Произошла ошибка",
+                content: "❌ Произошла ошибка",
 
-                ephemeral:true
+                ephemeral: true
+
+            });
+
+
+
+        } else {
+
+
+
+            await interaction.reply({
+
+                content: "❌ Произошла ошибка",
+
+                ephemeral: true
 
             });
 
@@ -201,7 +128,61 @@ async interaction => {
 
 
 
+// кнопки
 
-client.login(
-    process.env.TOKEN
-);
+client.on("interactionCreate", async interaction => {
+
+
+    if (!interaction.isButton()) return;
+
+
+
+    try {
+
+
+        if (interaction.customId === "love_profile") {
+
+
+            await interaction.reply({
+
+                content: "💖 Профиль любви в разработке",
+
+                ephemeral: true
+
+            });
+
+
+        }
+
+
+
+    } catch(error) {
+
+
+        console.error(error);
+
+
+
+        if (!interaction.replied) {
+
+
+            await interaction.reply({
+
+                content: "❌ Ошибка кнопки",
+
+                ephemeral: true
+
+            });
+
+
+        }
+
+
+    }
+
+
+});
+
+
+
+client.login(process.env.TOKEN);
