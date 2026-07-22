@@ -8,6 +8,6 @@
   "dependencies": {
     "discord.js": "^14.18.0",
     "mongoose": "^8.0.0",
-    "canvas": "^2.11.0"
+    "@napi-rs/canvas": "^0.1.0"
   }
 }
