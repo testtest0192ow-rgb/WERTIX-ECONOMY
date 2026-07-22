@@ -1,117 +1,93 @@
 const {
     SlashCommandBuilder,
-    AttachmentBuilder
+    AttachmentBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } = require("discord.js");
 
-const User = require("../models/User");
 const createProfileCard = require("../utils/profileCard");
 
 
 module.exports = {
 
     data: new SlashCommandBuilder()
-
         .setName("profile")
-        .setDescription("Посмотреть профиль игрока")
-
-        .addUserOption(option =>
-            option
-                .setName("user")
-                .setDescription("Посмотреть профиль другого пользователя")
-                .setRequired(false)
-        ),
-
+        .setDescription("Показать профиль пользователя"),
 
 
     async execute(interaction) {
 
-        try {
-
-            const target =
-                interaction.options.getUser("user")
-                || interaction.user;
+        const user = interaction.user;
 
 
+        const image = await createProfileCard({
 
-            let user = await User.findOne({
-                userId: target.id
-            });
+            username: user.username,
+
+            avatar: user.displayAvatarURL({
+                extension: "png",
+                size: 256
+            }),
+
+
+            joinDate: "22.07.26",
+
+
+            balance: "5 000 000",
+
+            // текущий стрик пользователя
+            streak: 25,
+
+
+            marriage: "Нет",
+
+
+            voice: 240,
+
+
+            level: 15
+
+        });
 
 
 
-            if (!user) {
-
-                user = await User.create({
-
-                    userId: target.id,
-
-                    coins: 0,
-
-                    streak: 0,
-
-                    messages: 0,
-
-                    voiceTime: 0
-
-                });
-
+        const file = new AttachmentBuilder(
+            image,
+            {
+                name: "profile.png"
             }
+        );
 
 
 
-            const image = await createProfileCard(
-                target,
-                {
+        const buttons = new ActionRowBuilder()
+            .addComponents(
 
-                    coins: user.coins || 0,
+                new ButtonBuilder()
 
-                    streak: user.streak || 0,
+                    .setCustomId("love_profile")
 
-                    messages: user.messages || 0,
+                    .setLabel("Профиль любви")
 
-                    voiceTime: user.voiceTime || 0
+                    // твой кастомный эмодзи любви
+                    .setEmoji("<:emoji_6:1529430913396506705>")
 
-                }
+                    .setStyle(ButtonStyle.Secondary)
+
             );
 
 
 
-            const attachment = new AttachmentBuilder(
-                image,
-                {
-                    name: "profile.png"
-                }
-            );
+        await interaction.reply({
 
+            files: [file],
 
+            components: [
+                buttons
+            ]
 
-            await interaction.reply({
-
-                files: [attachment]
-
-            });
-
-
-
-        } catch (error) {
-
-
-            console.error("Profile error:", error);
-
-
-            if (!interaction.replied) {
-
-                await interaction.reply({
-
-                    content: "❌ Не удалось загрузить профиль",
-
-                    ephemeral: true
-
-                });
-
-            }
-
-        }
+        });
 
     }
 
