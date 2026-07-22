@@ -26,26 +26,30 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// 🔹 ЗАГРУЗКА КОМАНД (правильный способ для ESM)
+// 🔹 ЗАГРУЗКА КОМАНД (файлы прямо в папке commands)
 const commands = [];
-const commandFolders = fs.readdirSync('./commands');
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-for (const folder of commandFolders) {
-  const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
-  
-  for (const file of commandFiles) {
-    const filePath = path.join(process.cwd(), 'commands', folder, file);
+console.log(`📂 Найдено ${commandFiles.length} файлов команд`);
+
+for (const file of commandFiles) {
+  try {
+    const filePath = path.join(process.cwd(), 'commands', file);
     const command = await import(`file://${filePath}`).then(m => m.default || m);
     
     if (command?.data && command?.execute) {
       client.commands.set(command.data.name, command);
       commands.push(command.data.toJSON());
-      console.log(`✅ Загружена команда: ${command.data.name}`);
+      console.log(`✅ Загружена команда: ${command.data.name} (${file})`);
     } else {
       console.log(`⚠️ Ошибка в файле: ${file} — нет data или execute`);
     }
+  } catch (error) {
+    console.error(`❌ Ошибка загрузки ${file}:`, error.message);
   }
 }
+
+console.log(`✅ Загружено ${commands.length} команд`);
 
 // 🔹 РЕГИСТРАЦИЯ СЛЭШ-КОМАНД
 const rest = new REST({ version: '10' }).setToken(TOKEN);
@@ -86,16 +90,24 @@ client.on('interactionCreate', async interaction => {
   // Кнопки
   if (interaction.isButton()) {
     if (interaction.customId === 'love_profile') {
-      const loveCommand = await import('./commands/love.js').then(m => m.default || m);
-      if (loveCommand?.execute) {
-        await loveCommand.execute(interaction);
+      try {
+        const loveCommand = await import('./commands/love.js').then(m => m.default || m);
+        if (loveCommand?.execute) {
+          await loveCommand.execute(interaction);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка love_profile:', error);
       }
     }
     
     if (interaction.customId === 'back_to_profile') {
-      const profileCommand = await import('./commands/profile.js').then(m => m.default || m);
-      if (profileCommand?.execute) {
-        await profileCommand.execute(interaction);
+      try {
+        const profileCommand = await import('./commands/profile.js').then(m => m.default || m);
+        if (profileCommand?.execute) {
+          await profileCommand.execute(interaction);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка back_to_profile:', error);
       }
     }
   }
