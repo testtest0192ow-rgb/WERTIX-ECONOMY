@@ -1,4 +1,4 @@
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 export async function createProfileCard(user, member, stats) {
   const canvas = createCanvas(1000, 600);
@@ -33,41 +33,45 @@ export async function createProfileCard(user, member, stats) {
     ctx.save();
     ctx.beginPath();
     ctx.arc(140, 160, 100, 0, Math.PI * 2);
+    ctx.closePath();
     ctx.clip();
     ctx.drawImage(avatar, 40, 60, 200, 200);
     ctx.restore();
     ctx.beginPath();
     ctx.arc(140, 160, 102, 0, Math.PI * 2);
+    ctx.closePath();
     ctx.strokeStyle = stats.partner ? '#ff6b9d' : '#5865f2';
     ctx.lineWidth = 4;
     ctx.stroke();
-  } catch {}
+  } catch (e) {}
 
   // Имя
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 36px Sans';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 36px sans-serif';
   ctx.fillText(user.globalName || user.username, 280, 120);
   ctx.fillStyle = '#b9bbbe';
-  ctx.font = '20px Sans';
+  ctx.font = '20px sans-serif';
   ctx.fillText(`@${user.username}`, 280, 155);
 
   // Статус
   const statusColors = { online: '#43b581', idle: '#faa61a', dnd: '#f04747', offline: '#747f8d' };
   const status = member.presence?.status || 'offline';
-  ctx.fillStyle = statusColors[status];
+  ctx.fillStyle = statusColors[status] || '#747f8d';
   ctx.beginPath();
   ctx.arc(290, 190, 10, 0, Math.PI * 2);
+  ctx.closePath();
   ctx.fill();
   ctx.fillStyle = '#b9bbbe';
-  ctx.font = '16px Sans';
-  ctx.fillText({ online: 'В сети', idle: 'Не активен', dnd: 'Не беспокоить', offline: 'Не в сети' }[status] || 'Не в сети', 310, 196);
+  ctx.font = '16px sans-serif';
+  const statusText = { online: 'В сети', idle: 'Не активен', dnd: 'Не беспокоить', offline: 'Не в сети' };
+  ctx.fillText(statusText[status] || 'Не в сети', 310, 196);
 
   // Уровень
   ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 28px Sans';
+  ctx.font = 'bold 28px sans-serif';
   ctx.fillText(`🎯 ${stats.level}`, 280, 295);
   ctx.fillStyle = '#b9bbbe';
-  ctx.font = '14px Sans';
+  ctx.font = '14px sans-serif';
   ctx.fillText('УРОВЕНЬ', 280, 315);
 
   // XP
@@ -84,48 +88,45 @@ export async function createProfileCard(user, member, stats) {
   ctx.roundRect(280, 330, 300 * progress, 10, 5);
   ctx.fill();
   ctx.fillStyle = '#b9bbbe';
-  ctx.font = '12px Sans';
+  ctx.font = '12px sans-serif';
   ctx.fillText(`${stats.xp} / ${stats.xpToNext} XP`, 430, 355);
 
   // Статистика справа
-  ctx.font = '18px Sans';
+  ctx.font = '18px sans-serif';
   ctx.fillStyle = '#ff6b9d';
   ctx.fillText(`❤️ ${stats.reputation}`, 620, 120);
   ctx.fillStyle = '#72767d';
-  ctx.font = '12px Sans';
+  ctx.font = '12px sans-serif';
   ctx.fillText('РЕПУТАЦИЯ', 620, 140);
-
   ctx.fillStyle = '#43b581';
-  ctx.font = '18px Sans';
+  ctx.font = '18px sans-serif';
   ctx.fillText(`💰 ${stats.balance}₽`, 620, 175);
   ctx.fillStyle = '#72767d';
-  ctx.font = '12px Sans';
+  ctx.font = '12px sans-serif';
   ctx.fillText('БАЛАНС', 620, 195);
-
   ctx.fillStyle = '#faa61a';
-  ctx.font = '18px Sans';
+  ctx.font = '18px sans-serif';
   ctx.fillText(`🎙 ${Math.floor(stats.voiceTime / 60)}ч ${stats.voiceTime % 60}м`, 620, 230);
   ctx.fillStyle = '#72767d';
-  ctx.font = '12px Sans';
+  ctx.font = '12px sans-serif';
   ctx.fillText('ГОЛОС', 620, 250);
-
   ctx.fillStyle = '#9b59b6';
-  ctx.font = '18px Sans';
+  ctx.font = '18px sans-serif';
   ctx.fillText(`💬 ${stats.messages}`, 620, 285);
   ctx.fillStyle = '#72767d';
-  ctx.font = '12px Sans';
+  ctx.font = '12px sans-serif';
   ctx.fillText('СООБЩЕНИЙ', 620, 305);
 
   // О себе
   if (stats.about) {
     ctx.fillStyle = '#b9bbbe';
-    ctx.font = '16px Sans';
+    ctx.font = '16px sans-serif';
     ctx.fillText(`📝 ${stats.about}`, 280, 410);
   }
 
   ctx.fillStyle = '#4f545c';
-  ctx.font = '13px Sans';
-  ctx.fillText(`Присоединился: ${member.joinedAt.toLocaleDateString('ru-RU')}`, 280, 480);
+  ctx.font = '13px sans-serif';
+  ctx.fillText(`Присоединился: ${member.joinedAt ? member.joinedAt.toLocaleDateString('ru-RU') : 'Неизвестно'}`, 280, 480);
   ctx.textAlign = 'right';
   ctx.fillText(`ID: ${user.id}`, 940, 540);
 
