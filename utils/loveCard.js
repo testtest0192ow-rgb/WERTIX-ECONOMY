@@ -1,10 +1,21 @@
-const { createCanvas, loadImage } = require("canvas");
+const {
+    createCanvas,
+    loadImage
+} = require("canvas");
+
 
 
 async function createLoveCard(data) {
 
-    const canvas = createCanvas(1000, 600);
+
+    const canvas = createCanvas(
+        1000,
+        600
+    );
+
+
     const ctx = canvas.getContext("2d");
+
 
 
     // фон
@@ -16,55 +27,81 @@ async function createLoveCard(data) {
         600
     );
 
-    gradient.addColorStop(0, "#2b102f");
-    gradient.addColorStop(1, "#120018");
+
+    gradient.addColorStop(
+        0,
+        "#ff5fa2"
+    );
+
+
+    gradient.addColorStop(
+        1,
+        "#5b2cff"
+    );
 
 
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1000, 600);
+
+
+    ctx.fillRect(
+        0,
+        0,
+        1000,
+        600
+    );
 
 
 
     // заголовок
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 42px Arial";
+
+
+    ctx.font =
+        "bold 45px Arial";
 
 
     ctx.fillText(
-        "💖 Профиль любви",
-        70,
+        "💖 ПРОФИЛЬ ЛЮБВИ",
+        80,
         90
     );
 
 
 
-    // аватар игрока
+    // аватар
 
-    const avatar1 = await loadImage(data.avatar);
+
+    const avatar = await loadImage(
+        data.avatar
+    );
 
 
     ctx.save();
 
+
     ctx.beginPath();
 
+
     ctx.arc(
-        350,
+        180,
         210,
-        80,
+        85,
         0,
         Math.PI * 2
     );
 
+
     ctx.clip();
 
 
+
     ctx.drawImage(
-        avatar1,
-        270,
-        130,
-        160,
-        160
+        avatar,
+        95,
+        125,
+        170,
+        170
     );
 
 
@@ -72,55 +109,57 @@ async function createLoveCard(data) {
 
 
 
-    ctx.fillStyle = "#ff8bd8";
-    ctx.font = "bold 35px Arial";
+    // имя пары
+
+
+    ctx.font =
+        "bold 32px Arial";
 
 
     ctx.fillText(
-        "❤️",
-        470,
-        220
+        `${data.username} ❤️ ${data.partner}`,
+        320,
+        190
     );
 
 
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "30px Arial";
-
-
-    ctx.fillText(
-        data.partner || "Нет пары",
-        550,
-        220
-    );
-
+    // информация
 
 
     const info = [
 
+
         `💍 Статус: ${data.status}`,
+
 
         `📅 Вместе с: ${data.startDate}`,
 
+
         `⏳ Вместе: ${data.days} дней`,
+
 
         `⭐ Уровень любви: ${data.loveLevel}`,
 
-        `💞 Очки любви: ${data.loveXp}`
+
+        `💞 Опыт любви: ${data.loveXp}`
+
 
     ];
 
 
 
-    let y = 330;
+    ctx.font =
+        "28px Arial";
 
 
-    ctx.font = "26px Arial";
+
+    let y = 290;
+
 
 
     for (const text of info) {
 
-        ctx.fillStyle = "#ffffff";
 
         ctx.fillText(
             text,
@@ -128,15 +167,33 @@ async function createLoveCard(data) {
             y
         );
 
+
         y += 45;
 
+
     }
+
+
+
+    // нижняя часть
+
+
+    ctx.font =
+        "bold 26px Arial";
+
+
+    ctx.fillText(
+        "Берегите свои отношения ❤️",
+        120,
+        540
+    );
 
 
 
     return canvas.toBuffer();
 
 }
+
 
 
 module.exports = createLoveCard;
