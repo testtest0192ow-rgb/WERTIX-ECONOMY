@@ -1,7 +1,9 @@
 require("dotenv").config();
 
-const { 
-    Client, 
+const mongoose = require("mongoose");
+
+const {
+    Client,
     GatewayIntentBits,
     REST,
     Routes,
@@ -16,6 +18,7 @@ const client = new Client({
 });
 
 
+// Команды WERTIX
 const commands = [
     new SlashCommandBuilder()
         .setName("ping")
@@ -23,15 +26,18 @@ const commands = [
 ].map(command => command.toJSON());
 
 
+// Регистрация команд
 const rest = new REST({ version: "10" })
     .setToken(process.env.TOKEN);
 
 
+// Запуск бота
 client.once("ready", async () => {
 
     console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
 
 
+    // Подключение команд
     try {
 
         await rest.put(
@@ -41,18 +47,32 @@ client.once("ready", async () => {
             }
         );
 
-
         console.log("✅ Команды загружены");
 
-    } catch(error) {
+    } catch (error) {
 
-        console.log(error);
+        console.log("❌ Ошибка команд:", error);
+
+    }
+
+
+    // Подключение MongoDB
+    try {
+
+        await mongoose.connect(process.env.MONGO_URI);
+
+        console.log("✅ MongoDB подключена");
+
+    } catch (error) {
+
+        console.log("❌ Ошибка MongoDB:", error);
 
     }
 
 });
 
 
+// Обработка команд
 client.on("interactionCreate", async interaction => {
 
     if (!interaction.isChatInputCommand()) return;
@@ -70,4 +90,5 @@ client.on("interactionCreate", async interaction => {
 });
 
 
+// Запуск
 client.login(process.env.TOKEN);
