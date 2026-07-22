@@ -3,7 +3,6 @@ const {
     AttachmentBuilder
 } = require("discord.js");
 
-
 const User = require("../models/User.js");
 
 const {
@@ -20,87 +19,133 @@ module.exports = {
         .setName("balance")
 
         .setDescription(
-            "Показать баланс WERTIX"
+            "Показать баланс"
         ),
-
 
 
 
     async execute(interaction) {
 
 
-        // даём Discord время на создание картинки
-        await interaction.deferReply();
+        try {
+
+
+            await interaction.deferReply();
 
 
 
-        let user = await User.findOne({
+            let user = await User.findOne({
 
-            userId: interaction.user.id
-
-        });
-
-
-
-
-        if (!user) {
-
-
-            user = await User.create({
-
-                userId: interaction.user.id,
-
-                coins: 0
+                userId: interaction.user.id
 
             });
 
 
-        }
 
 
+            if (!user) {
 
 
+                user = await User.create({
 
-        const image = await createBalanceCard(
+                    userId: interaction.user.id,
 
-            user,
+                    coins: 0,
 
-            interaction.user
+                    messages: 0,
 
-        );
+                    voiceTime: 0,
 
+                    wins: 0,
 
+                    losses: 0
 
+                });
 
-
-
-        const attachment = new AttachmentBuilder(
-
-            image,
-
-            {
-
-                name: "wertix-balance.png"
 
             }
 
-        );
+
+
+
+            const image = await createBalanceCard(
+
+                user,
+
+                interaction.user
+
+            );
+
+
+
+
+            const attachment = new AttachmentBuilder(
+
+                image,
+
+                {
+
+                    name: "balance.png"
+
+                }
+
+            );
 
 
 
 
 
+            await interaction.editReply({
 
-        await interaction.editReply({
+                files: [
 
-            files: [
+                    attachment
 
-                attachment
+                ]
 
-            ]
+            });
 
-        });
 
+
+        } catch (error) {
+
+
+            console.log(
+                "BALANCE ERROR:",
+                error
+            );
+
+
+
+            if (interaction.deferred) {
+
+
+                await interaction.editReply({
+
+                    content:
+                        "❌ Ошибка при создании баланса"
+
+                });
+
+
+            } else {
+
+
+                await interaction.reply({
+
+                    content:
+                        "❌ Ошибка",
+
+                    ephemeral:
+                        true
+
+                });
+
+
+            }
+
+
+        }
 
 
     }
