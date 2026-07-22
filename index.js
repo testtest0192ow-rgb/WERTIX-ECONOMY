@@ -14,13 +14,9 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!TOKEN || !CLIENT_ID || !MONGODB_URI) {
   console.error('❌ Не все переменные заданы!');
-  console.error('TOKEN:', TOKEN ? '✅' : '❌');
-  console.error('CLIENT_ID:', CLIENT_ID ? '✅' : '❌');
-  console.error('MONGODB_URI:', MONGODB_URI ? '✅' : '❌');
   process.exit(1);
 }
 
-// 🔹 СОЗДАЁМ КЛИЕНТА
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -35,70 +31,63 @@ client.commands = new Collection();
 
 // 🔹 ЗАГРУЗКА КОМАНД
 const commands = [];
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-
-console.log(`📂 Найдено ${commandFiles.length} файлов команд`);
+const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
 
 for (const file of commandFiles) {
   try {
-    const filePath = path.join(process.cwd(), 'commands', file);
-    const command = await import(`file://${filePath}`).then(m => m.default || m);
-    
-    if (command?.data && command?.execute) {
-      client.commands.set(command.data.name, command);
-      commands.push(command.data.toJSON());
-      console.log(`✅ Загружена команда: ${command.data.name} (${file})`);
-    } else {
-      console.log(`⚠️ Ошибка в файле: ${file} — нет data или execute`);
+    const { data, execute } = await import(`./commands/${file}`);
+    if (data && execute) {
+      client.commands.set(data.name, { data, execute });
+      commands.push(data.toJSON());
+      console.log(`✅ ${data.name}`);
     }
-  } catch (error) {
-    console.error(`❌ Ошибка загрузки ${file}:`, error.message);
+  } catch (e) {
+    console.log(`❌ ${file}: ${e.message}`);
   }
 }
-
-console.log(`✅ Загружено ${commands.length} команд`);
 
 // 🔹 РЕГИСТРАЦИЯ
-if (commands.length > 0) {
+if (commands.length) {
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
-    console.log('🔄 Регистрация команд...');
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
     console.log(`✅ Зарегистрировано ${commands.length} команд`);
-  } catch (error) {
-    console.error('❌ Ошибка регистрации:', error);
+  } catch (e) {
+    console.error('❌ Регистрация:', e);
   }
-} else {
-  console.log('⚠️ Нет команд для регистрации');
 }
 
-// 🔹 ПОДКЛЮЧЕНИЕ БД
+// 🔹 ПОДКЛЮЧЕНИЕ БД С ДИАГНОСТИКОЙ
 try {
-  await mongoose.connect(MONGODB_URI);
+  console.log('🔄 Подключение к MongoDB...');
+  await mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  });
   console.log('✅ MongoDB подключена');
+  
+  // Проверка: создаём тестовую запись
+  const User = (await import('./models/User.js')).default;
+  const testUser = await User.findOne({ userId: 'test' });
+  console.log('✅ Тестовая проверка БД пройдена');
 } catch (error) {
-  console.error('❌ Ошибка подключения к MongoDB:', error);
+  console.error('❌ Ошибка подключения к MongoDB:', error.message);
+  console.error('❌ Полная ошибка:', error);
 }
 
 // 🔹 ОБРАБОТКА ВЗАИМОДЕЙСТВИЙ
 client.on('interactionCreate', async interaction => {
-  // Слэш-команды
   if (interaction.isChatInputCommand()) {
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-    
+    const cmd = client.commands.get(interaction.commandName);
+    if (!cmd) return;
     try {
-      await command.execute(interaction);
-    } catch (error) {
-      console.error(`❌ Ошибка в команде ${interaction.commandName}:`, error);
-      await interaction.reply({
-        content: '❌ Произошла ошибка при выполнении команды',
-        flags: 64
-      });
+      await cmd.execute(interaction);
+    } catch (e) {
+      console.error(`❌ Ошибка в ${interaction.commandName}:`, e);
+      await interaction.reply({ content: '❌ Ошибка', flags: 64 }).catch(() => {});
     }
   }
 
-  // Кнопки
   if (interaction.isButton()) {
     if (interaction.customId.startsWith('love_')) {
       try {
@@ -143,7 +132,7 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({
           content: '❌ Ошибка при открытии любовного профиля',
           flags: 64
-        });
+        }).catch(() => {});
       }
     }
     
@@ -167,12 +156,11 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({
           content: '❌ Ошибка при возврате в профиль',
           flags: 64
-        });
+        }).catch(() => {});
       }
     }
   }
 });
 
-// 🔹 ЛОГИН
 client.login(TOKEN);
 console.log('🚀 Бот запускается...');
