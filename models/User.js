@@ -1,0 +1,311 @@
+require("dotenv").config();
+
+const mongoose = require("mongoose");
+const User = require("./models/User");
+
+const {
+    Client,
+    GatewayIntentBits,
+    REST,
+    Routes,
+    SlashCommandBuilder,
+    EmbedBuilder
+} = require("discord.js");
+
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds
+    ]
+});
+
+
+// Команды WERTIX
+
+const commands = [
+
+    new SlashCommandBuilder()
+        .setName("ping")
+        .setDescription("Проверка работы бота"),
+
+
+    new SlashCommandBuilder()
+        .setName("balance")
+        .setDescription("Показать баланс монет")
+
+].map(command => command.toJSON());
+
+
+
+const rest = new REST({
+    version: "10"
+}).setToken(process.env.TOKEN);
+
+
+
+
+
+client.once("ready", async () => {
+
+
+    console.log(`✅ WERTIX онлайн: ${client.user.tag}`);
+
+
+
+    try {
+
+        await rest.put(
+
+            Routes.applicationCommands(
+                client.user.id
+            ),
+
+            {
+                body: commands
+            }
+
+        );
+
+
+        console.log("✅ Команды загружены");
+
+
+    } catch (error) {
+
+        console.log(
+            "❌ Ошибка команд:",
+            error
+        );
+
+    }
+
+
+
+
+
+    try {
+
+        await mongoose.connect(
+            process.env.MONGO_URI
+        );
+
+
+        console.log(
+            "✅ MongoDB подключена"
+        );
+
+
+    } catch(error) {
+
+
+        console.log(
+            "❌ Ошибка MongoDB:",
+            error
+        );
+
+
+    }
+
+
+});
+
+
+
+
+
+
+
+client.on(
+    "interactionCreate",
+    async interaction => {
+
+
+    if (!interaction.isChatInputCommand())
+        return;
+
+
+
+
+
+    // PING
+
+    if (
+        interaction.commandName === "ping"
+    ) {
+
+
+        return interaction.reply({
+            content: "🏓 WERTIX работает!"
+        });
+
+
+    }
+
+
+
+
+
+
+
+
+    // BALANCE
+
+    if (
+        interaction.commandName === "balance"
+    ) {
+
+
+
+        let user = await User.findOne({
+
+            userId: interaction.user.id
+
+        });
+
+
+
+
+
+        if (!user) {
+
+
+            user = await User.create({
+
+                userId: interaction.user.id,
+
+                coins: 0,
+
+                messages: 0,
+
+                voiceTime: 0,
+
+                wins: 0,
+
+                losses: 0
+
+            });
+
+
+        }
+
+
+
+
+
+
+        const embed = new EmbedBuilder()
+
+
+            .setColor("#2b2d31")
+
+
+            .setAuthor({
+
+                name:
+                interaction.user.username,
+
+                iconURL:
+                interaction.user.displayAvatarURL({
+                    dynamic: true
+                })
+
+            })
+
+
+
+            .setTitle(
+                "💰 WERTIX Balance"
+            )
+
+
+
+            .addFields(
+
+
+                {
+                    name: "Монеты",
+
+                    value:
+                    `**${user.coins.toLocaleString()}**`,
+
+                    inline: true
+
+                },
+
+
+                {
+                    name: "Сообщения",
+
+                    value:
+                    `**${user.messages}**`,
+
+                    inline: true
+
+                },
+
+
+                {
+                    name: "Время в ГС",
+
+                    value:
+                    `**${user.voiceTime} мин.**`,
+
+                    inline: true
+
+                }
+
+
+            )
+
+
+
+            .setThumbnail(
+
+                interaction.user.displayAvatarURL({
+                    dynamic: true
+                })
+
+            )
+
+
+
+            .setFooter({
+
+                text:
+                "WERTIX Economy"
+
+            })
+
+
+
+            .setTimestamp();
+
+
+
+
+
+        return interaction.reply({
+
+            embeds: [
+                embed
+            ]
+
+        });
+
+
+
+    }
+
+
+
+});
+
+
+
+
+
+
+
+client.login(
+    process.env.TOKEN
+);
