@@ -3,14 +3,9 @@ import { SlashCommandBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder
 import User from '../models/User.js';
 import { createLoveCard } from '../utils/loveCard.js';
 
-const EMOJIS = {
-  heart: '<:emoji_6:1529430913396506705>',
-  marriage: '<:emoji_2:1529430666792669214>'
-};
-
 export const data = new SlashCommandBuilder()
   .setName('love')
-  .setDescription('❤️ Показать любовный профиль')
+  .setDescription('Показать любовный профиль пользователя')
   .addUserOption(option =>
     option.setName('user')
       .setDescription('Выберите пользователя')
@@ -19,17 +14,8 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   try {
-    let user = interaction.options?.getUser('user');
+    const user = interaction.options.getUser('user') || interaction.user;
     
-    if (!user && interaction.customId?.startsWith('love_profile_')) {
-      const userId = interaction.customId.replace('love_profile_', '');
-      user = await interaction.client.users.fetch(userId);
-    }
-    
-    if (!user) {
-      user = interaction.user;
-    }
-
     let userData = await User.findOne({ userId: user.id, guildId: interaction.guildId });
     if (!userData) {
       userData = new User({ userId: user.id, guildId: interaction.guildId });
@@ -38,7 +24,7 @@ export async function execute(interaction) {
 
     if (!userData.partnerId) {
       return await interaction.reply({
-        content: `${EMOJIS.heart} У **${user.displayName}** пока нет второй половинки! 💔`,
+        content: `❤️ У **${user.displayName}** пока нет второй половинки! 💔`,
         ephemeral: true
       });
     }
@@ -73,13 +59,12 @@ export async function execute(interaction) {
           .setCustomId(`back_to_profile_${user.id}`)
           .setLabel('Обычный профиль')
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📋')
       );
 
     await interaction.reply({
       files: [attachment],
       components: [row],
-      content: `${EMOJIS.heart} **${user.displayName}** ${EMOJIS.marriage} **${partner.displayName}**`
+      content: `**${user.displayName}** ❤️ **${partner.displayName}**`
     });
   } catch (error) {
     console.error('❌ Ошибка в love.js:', error);
