@@ -1,66 +1,43 @@
-// commands/profile.js
 import { SlashCommandBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import User from '../models/User.js';
 import { createProfileCard } from '../utils/profileCard.js';
 
 export const data = new SlashCommandBuilder()
   .setName('profile')
-  .setDescription('Показать профиль пользователя')
-  .addUserOption(option =>
-    option.setName('user')
-      .setDescription('Выберите пользователя')
-      .setRequired(false)
-  );
+  .setDescription('Показать профиль')
+  .addUserOption(o => o.setName('user').setDescription('Пользователь').setRequired(false));
 
 export async function execute(interaction) {
-  try {
-    const user = interaction.options.getUser('user') || interaction.user;
-    const member = await interaction.guild.members.fetch(user.id);
-
-    let userData = await User.findOne({ userId: user.id, guildId: interaction.guildId });
-    if (!userData) {
-      userData = new User({ userId: user.id, guildId: interaction.guildId });
-      await userData.save();
-    }
-
-    const stats = {
-      level: userData.level || 0,
-      xp: userData.xp || 0,
-      xpToNext: (userData.level || 0) * 100 + 100,
-      balance: userData.balance || 0,
-      bank: userData.bank || 0,
-      reputation: userData.reputation || 0,
-      voiceTime: userData.voiceTime || 0,
-      top: userData.topPosition || 0,
-      bg: userData.background || 'default',
-      about: userData.about || '',
-      partner: userData.partnerId || null,
-      messages: userData.messages || 0,
-      role: userData.role || 'Участник'
-    };
-
-    const buffer = await createProfileCard(user, member, stats);
-    const attachment = new AttachmentBuilder(buffer, { name: 'profile.png' });
-
-    // Кнопка "Любовный профиль"
-    const row = new ActionRowBuilder()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(`love_profile_${user.id}`)
-          .setLabel('Любовный профиль')
-          .setStyle(ButtonStyle.Secondary)
-      );
-
-    await interaction.reply({
-      files: [attachment],
-      components: [row],
-      content: `**Профиль ${user.displayName}**`
-    });
-  } catch (error) {
-    console.error('❌ Ошибка в profile.js:', error);
-    await interaction.reply({
-      content: '❌ Произошла ошибка при создании профиля',
-      ephemeral: true
-    });
+  const user = interaction.options.getUser('user') || interaction.user;
+  const member = await interaction.guild.members.fetch(user.id);
+  
+  let data = await User.findOne({ userId: user.id, guildId: interaction.guildId });
+  if (!data) {
+    data = new User({ userId: user.id, guildId: interaction.guildId });
+    await data.save();
   }
+  
+  const stats = {
+    level: data.level || 0,
+    xp: data.xp || 0,
+    xpToNext: (data.level + 1) * 100,
+    balance: data.balance || 0,
+    bank: data.bank || 0,
+    reputation: data.reputation || 0,
+    voiceTime: data.voiceTime || 0,
+    messages: data.messages || 0,
+    partner: data.partnerId,
+    about: data.about || ''
+  };
+  
+  const buffer = await createProfileCard(user, member, stats);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`love_${user.id}`).setLabel('Любовный профиль').setStyle(ButtonStyle.Secondary)
+  );
+  
+  await interaction.reply({
+    files: [new AttachmentBuilder(buffer, { name: 'profile.png' })],
+    components: [row],
+    content: `**Профиль ${user.displayName}**`
+  });
 }
