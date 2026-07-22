@@ -3,13 +3,9 @@ import { SlashCommandBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder
 import User from '../models/User.js';
 import { createProfileCard } from '../utils/profileCard.js';
 
-const EMOJIS = {
-  heart: '<:emoji_6:1529430913396506705>'
-};
-
 export const data = new SlashCommandBuilder()
   .setName('profile')
-  .setDescription('📋 Показать профиль пользователя')
+  .setDescription('Показать профиль пользователя')
   .addUserOption(option =>
     option.setName('user')
       .setDescription('Выберите пользователя')
@@ -39,25 +35,26 @@ export async function execute(interaction) {
       bg: userData.background || 'default',
       about: userData.about || '',
       partner: userData.partnerId || null,
-      messages: userData.messages || 0
+      messages: userData.messages || 0,
+      role: userData.role || 'Участник'
     };
 
     const buffer = await createProfileCard(user, member, stats);
     const attachment = new AttachmentBuilder(buffer, { name: 'profile.png' });
 
+    // Кнопка "Любовный профиль"
     const row = new ActionRowBuilder()
       .addComponents(
         new ButtonBuilder()
           .setCustomId(`love_profile_${user.id}`)
           .setLabel('Любовный профиль')
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji(EMOJIS.heart)
       );
 
     await interaction.reply({
       files: [attachment],
       components: [row],
-      content: `📋 **Профиль ${user.displayName}**`
+      content: `**Профиль ${user.displayName}**`
     });
   } catch (error) {
     console.error('❌ Ошибка в profile.js:', error);
