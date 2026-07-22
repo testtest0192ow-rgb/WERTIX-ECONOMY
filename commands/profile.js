@@ -1,136 +1,154 @@
 const {
-
     SlashCommandBuilder,
-
     AttachmentBuilder,
-
     ActionRowBuilder,
-
     ButtonBuilder,
-
     ButtonStyle
-
 } = require("discord.js");
-
 
 const createProfileCard = require("../utils/profileCard");
 
 
-
 module.exports = {
 
+    data: new SlashCommandBuilder()
 
-data: new SlashCommandBuilder()
+        .setName("profile")
 
-.setName("profile")
+        .setDescription("Показать профиль пользователя"),
 
-.setDescription("Показать профиль пользователя"),
 
 
+    async execute(interaction) {
 
-async execute(interaction){
 
+        // даём Discord понять, что бот обрабатывает запрос
+        await interaction.deferReply();
 
 
-const user = interaction.user;
 
+        const user = interaction.user;
 
 
-// временно, потом подключим MongoDB
 
-const userData = {
+        // временные данные
+        // позже заменим на MongoDB
 
+        const userData = {
 
-username: user.username,
 
+            username: user.username,
 
-avatar: user.displayAvatarURL({
 
-extension:"png",
+            avatar: user.displayAvatarURL({
 
-size:256
+                extension: "png",
 
-}),
+                size: 256
 
+            }),
 
-joinDate:"22.07.2026",
 
 
-balance:"5 000 000",
+            joinDate: "22.07.2026",
 
 
-streak:25,
 
+            balance: "5 000 000",
 
-marriage:"Нет",
 
 
-voice:240,
+            streak: 25,
 
 
-messages:"12 500",
 
+            marriage: "Нет",
 
-level:15
 
-};
 
+            voice: 240,
 
 
-const image = await createProfileCard(userData);
 
+            messages: "12 500",
 
 
-const file = new AttachmentBuilder(
 
-image,
+            level: 15
 
-{
+        };
 
-name:"profile.png"
 
-}
 
-);
 
 
+        const image = await createProfileCard(userData);
 
 
 
-const button = new ActionRowBuilder()
 
-.addComponents(
+        const file = new AttachmentBuilder(
 
+            image,
 
-new ButtonBuilder()
+            {
 
-.setCustomId("love_profile")
+                name: "profile.png"
 
-.setLabel("Профиль любви")
+            }
 
-.setEmoji("<:emoji_6:1529430913396506705>")
+        );
 
-.setStyle(ButtonStyle.Secondary)
 
 
 
-);
 
+        const button = new ActionRowBuilder()
 
+            .addComponents(
 
 
+                new ButtonBuilder()
 
-await interaction.reply({
+                    .setCustomId("love_profile")
 
-files:[file],
+                    .setLabel("Профиль любви")
 
-components:[button]
+                    .setEmoji("<:emoji_6:1529430913396506705>")
 
-});
+                    .setStyle(ButtonStyle.Secondary)
 
 
+            );
 
-}
 
+
+
+
+
+        // вместо reply используем editReply после deferReply
+
+        await interaction.editReply({
+
+
+            files: [
+
+                file
+
+            ],
+
+
+            components: [
+
+                button
+
+            ]
+
+
+        });
+
+
+
+    }
 
 };
