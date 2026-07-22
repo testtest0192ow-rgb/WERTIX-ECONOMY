@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  userId: { type: String, unique: true },
-  guildId: String,
+  userId: { type: String, required: true, unique: true },
+  guildId: { type: String, required: true },
   balance: { type: Number, default: 0 },
   bank: { type: Number, default: 0 },
   level: { type: Number, default: 0 },
@@ -16,6 +16,6 @@ const userSchema = new mongoose.Schema({
   marriedAt: { type: Date, default: null },
   background: { type: String, default: 'default' },
   about: { type: String, default: '' }
-});
+}, { timestamps: true });
 
 export default mongoose.model('User', userSchema);
