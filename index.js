@@ -1,8 +1,17 @@
 require('dotenv').config();
+const http = require('http');
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+
+// HTTP сервер ПЕРВЫМ чтобы Render не ругался
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('SECTOR ECONOMY ONLINE');
+});
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => console.log(`🌐 Порт ${PORT}`));
 
 const client = new Client({
     intents: [
@@ -18,7 +27,6 @@ client.commands = new Collection();
 // Загружаем команды
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
 const commands = [];
 
 for (const file of commandFiles) {
@@ -27,7 +35,6 @@ for (const file of commandFiles) {
     commands.push(command.data.toJSON());
 }
 
-// Бот готов
 client.once('ready', async () => {
     console.log(`✅ ${client.user.tag} запущен!`);
     
@@ -38,13 +45,12 @@ client.once('ready', async () => {
             Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
             { body: commands }
         );
-        console.log('✅ Слеш-команды загружены');
+        console.log('✅ Команды загружены');
     } catch (error) {
-        console.error('❌ Ошибка загрузки команд:', error);
+        console.error('❌ Ошибка команд:', error);
     }
 });
 
-// Обработка слеш-команд
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
     
@@ -54,77 +60,68 @@ client.on('interactionCreate', async interaction => {
     try {
         await command.execute(interaction);
     } catch (error) {
-        console.error('❌ Ошибка команды:', error);
+        console.error('❌ Ошибка:', error);
+        const reply = { content: '❌ Ошибка!', flags: 64 };
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Ошибка! Попробуй позже.', ephemeral: true });
+            await interaction.reply(reply);
+        } else {
+            await interaction.editReply(reply);
         }
     }
 });
 
-// Обработка префикс-команд (!bal, !dep, !with, !pay)
+// Префикс-команды
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
     if (!message.content.startsWith('!')) return;
     
     const args = message.content.slice(1).trim().split(/ +/);
     const cmd = args.shift().toLowerCase();
-    
     const User = require('./models/User');
     
-    // !bal / !balance / !деньги
+    // !bal
     if (['bal', 'balance', 'деньги', 'баланс', 'кошелёк'].includes(cmd)) {
         let user = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
-        if (!user) {
-            user = await User.create({ userId: message.author.id, guildId: message.guild.id });
-        }
+        if (!user) user = await User.create({ userId: message.author.id, guildId: message.guild.id });
         const total = user.wallet + user.bank;
-        return message.reply(
-            `💰 **Кошелёк:** ${user.wallet.toLocaleString()}\n` +
-            `🏦 **Банк:** ${user.bank.toLocaleString()}\n` +
-            `💎 **Всего:** ${total.toLocaleString()}`
-        );
+        return message.reply(`💰 Кошелёк: **${user.wallet.toLocaleString()}** | 🏦 Банк: **${user.bank.toLocaleString()}** | 💎 Всего: **${total.toLocaleString()}**`);
     }
     
-    // !dep 1000 / !dep all
+    // !dep
     if (['dep', 'deposit', 'положить'].includes(cmd)) {
         let user = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
-        if (!user) return message.reply('❌ Ты ещё не в системе. Напиши **!bal**');
-        
+        if (!user) return message.reply('❌ Напиши **!bal** сначала');
         let amount = parseInt(args[0]);
         if (args[0] === 'all' || args[0] === 'всё') amount = user.wallet;
-        if (!amount || amount <= 0) return message.reply('❌ Укажи сумму: **!dep 1000** или **!dep all**');
-        if (amount > user.wallet) return message.reply('❌ Недостаточно денег в кошельке!');
-        
+        if (!amount || amount <= 0) return message.reply('❌ **!dep 1000** или **!dep all**');
+        if (amount > user.wallet) return message.reply('❌ Недостаточно в кошельке!');
         user.wallet -= amount;
         user.bank += amount;
         await user.save();
-        return message.reply(`✅ Положено в банк: **${amount.toLocaleString()}** коинов`);
+        return message.reply(`✅ В банк: **${amount.toLocaleString()}**`);
     }
     
-    // !with 500 / !with all
+    // !with
     if (['with', 'withdraw', 'снять'].includes(cmd)) {
         let user = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
-        if (!user) return message.reply('❌ Ты ещё не в системе. Напиши **!bal**');
-        
+        if (!user) return message.reply('❌ Напиши **!bal** сначала');
         let amount = parseInt(args[0]);
         if (args[0] === 'all' || args[0] === 'всё') amount = user.bank;
-        if (!amount || amount <= 0) return message.reply('❌ Укажи сумму: **!with 500** или **!with all**');
-        if (amount > user.bank) return message.reply('❌ Недостаточно денег в банке!');
-        
+        if (!amount || amount <= 0) return message.reply('❌ **!with 500** или **!with all**');
+        if (amount > user.bank) return message.reply('❌ Недостаточно в банке!');
         user.bank -= amount;
         user.wallet += amount;
         await user.save();
-        return message.reply(`✅ Снято из банка: **${amount.toLocaleString()}** коинов`);
+        return message.reply(`✅ Снято: **${amount.toLocaleString()}**`);
     }
     
     // !pay @user 1000
     if (['pay', 'transfer', 'перевести', 'перевод'].includes(cmd)) {
         const target = message.mentions.users.first();
-        if (!target) return message.reply('❌ Укажи пользователя: **!pay @user 1000**');
-        
+        if (!target) return message.reply('❌ **!pay @user 1000**');
         const amount = parseInt(args[1]);
-        if (!amount || amount < 10) return message.reply('❌ Минимум 10 коинов!');
-        if (target.id === message.author.id) return message.reply('❌ Нельзя перевести себе!');
+        if (!amount || amount < 10) return message.reply('❌ Минимум 10!');
+        if (target.id === message.author.id) return message.reply('❌ Нельзя себе!');
         
         let sender = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
         if (!sender || sender.wallet < amount) return message.reply('❌ Недостаточно денег!');
@@ -139,11 +136,7 @@ client.on('messageCreate', async message => {
         receiver.wallet += final;
         await sender.save();
         await receiver.save();
-        
-        return message.reply(
-            `✅ Переведено **${final.toLocaleString()}** → ${target.username}\n` +
-            `💸 Налог (6%): ${tax.toLocaleString()}`
-        );
+        return message.reply(`✅ **${final.toLocaleString()}** → ${target.username} (налог: ${tax})`);
     }
     
     // !daily
@@ -154,10 +147,8 @@ client.on('messageCreate', async message => {
         const now = new Date();
         if (user.lastDaily) {
             const diff = now - user.lastDaily;
-            const hoursLeft = 24 - Math.floor(diff / (1000 * 60 * 60));
-            if (hoursLeft > 0) {
-                return message.reply(`❌ Приходи через **${hoursLeft}** часов`);
-            }
+            const hoursLeft = 24 - Math.floor(diff / 3600000);
+            if (hoursLeft > 0) return message.reply(`❌ Жди **${hoursLeft}** ч`);
         }
         
         const reward = Math.floor(Math.random() * 1000) + 500 + (user.dailyStreak * 50);
@@ -165,24 +156,13 @@ client.on('messageCreate', async message => {
         user.dailyStreak += 1;
         user.lastDaily = now;
         await user.save();
-        
-        return message.reply(`🎁 **+${reward.toLocaleString()}** коинов! Серия: **${user.dailyStreak}** дней`);
+        return message.reply(`🎁 **+${reward.toLocaleString()}**! Серия: **${user.dailyStreak}** дн`);
     }
 });
 
-// Фиктивный HTTP сервер (для Render)
-const http = require('http');
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('SECTOR ECONOMY BOT IS ONLINE ✅');
-});
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`🌐 HTTP сервер на порту ${PORT}`));
-
-// Запуск бота
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
-        console.log('✅ MongoDB подключена');
+        console.log('✅ MongoDB');
         client.login(process.env.DISCORD_TOKEN);
     })
-    .catch(err => console.error('❌ MongoDB ошибка:', err));
+    .catch(err => console.error('❌ MongoDB:', err));
