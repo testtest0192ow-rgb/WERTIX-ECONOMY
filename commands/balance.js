@@ -18,24 +18,20 @@ module.exports = {
         const canvas = createCanvas(W, H);
         const ctx = canvas.getContext('2d');
 
-        // Фон
         ctx.fillStyle = '#0d0d1a';
         ctx.fillRect(0, 0, W, H);
 
-        // Карточка
         ctx.fillStyle = '#151528';
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.roundRect(15, 15, 670, 310, 20); ctx.fill(); ctx.stroke();
 
-        // Аватарка
-        const av = await loadImage(target.displayAvatarURL({ format: 'png', size: 128 }));
+        const av = await loadImage(target.displayAvatarURL({ extension: 'png', size: 128 }));
         ctx.save(); ctx.beginPath(); ctx.arc(80, 80, 45, 0, Math.PI*2); ctx.clip();
         ctx.drawImage(av, 35, 35, 90, 90); ctx.restore();
         ctx.beginPath(); ctx.arc(80, 80, 47, 0, Math.PI*2);
         ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2; ctx.stroke();
 
-        // Имя
         ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 24px Arial'; ctx.fillText(target.username, 145, 70);
         ctx.fillStyle = '#888'; ctx.font = '14px Arial'; ctx.fillText(`@${target.username}`, 145, 95);
 
