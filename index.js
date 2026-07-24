@@ -1,180 +1,144 @@
-import { Client, GatewayIntentBits, Collection, REST, Routes, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 'discord.js';
-import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 🔹 ПРОВЕРКА ПЕРЕМЕННЫХ
-const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!TOKEN || !CLIENT_ID || !MONGODB_URI) {
-  console.error('❌ Не все переменные заданы!');
-  process.exit(1);
-}
+require('dotenv').config();
+const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMembers
-  ]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers,
+    ]
 });
 
 client.commands = new Collection();
 
-// 🔹 ЗАГРУЗКА КОМАНД
+// Загружаем команды
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
 const commands = [];
-const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
 
 for (const file of commandFiles) {
-  try {
-    const { data, execute } = await import(`./commands/${file}`);
-    if (data && execute) {
-      client.commands.set(data.name, { data, execute });
-      commands.push(data.toJSON());
-      console.log(`✅ ${data.name}`);
-    }
-  } catch (e) {
-    console.log(`❌ ${file}: ${e.message}`);
-  }
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.data.name, command);
+    commands.push(command.data.toJSON());
 }
 
-// 🔹 РЕГИСТРАЦИЯ
-if (commands.length) {
-  const rest = new REST({ version: '10' }).setToken(TOKEN);
-  try {
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log(`✅ Зарегистрировано ${commands.length} команд`);
-  } catch (e) {
-    console.error('❌ Регистрация:', e);
-  }
-}
-
-// 🔹 ПОДКЛЮЧЕНИЕ БД
-try {
-  console.log('🔄 Подключение к MongoDB...');
-  await mongoose.connect(MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-  });
-  console.log('✅ MongoDB подключена');
-  const User = (await import('./models/User.js')).default;
-  await User.findOne({ userId: 'test' });
-  console.log('✅ Тестовая проверка БД пройдена');
-} catch (error) {
-  console.error('❌ Ошибка подключения к MongoDB:', error.message);
-}
-
-// 🔹 ОБРАБОТКА ВЗАИМОДЕЙСТВИЙ
-client.on('interactionCreate', async interaction => {
-  // Слэш-команды
-  if (interaction.isChatInputCommand()) {
-    const cmd = client.commands.get(interaction.commandName);
-    if (!cmd) return;
+// Загружаем команды при старте
+client.once('ready', async () => {
+    console.log(`✅ ${client.user.tag} запущен!`);
+    
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    
     try {
-      await cmd.execute(interaction);
-    } catch (e) {
-      console.error(`❌ Ошибка в ${interaction.commandName}:`, e);
-      await interaction.reply({ content: '❌ Ошибка', flags: 64 }).catch(() => {});
-    }
-  }
-
-  // КНОПКИ
-  if (interaction.isButton()) {
-    if (interaction.customId.startsWith('love_')) {
-      try {
-        const userId = interaction.customId.replace('love_', '');
-        const user = await client.users.fetch(userId);
-        const { createLoveCard } = await import('./utils/loveCard.js');
-        const User = (await import('./models/User.js')).default;
-
-        let data = await User.findOneAndUpdate(
-          { userId: user.id, guildId: interaction.guildId },
-          {
-            $setOnInsert: {
-              userId: user.id,
-              guildId: interaction.guildId,
-              balance: 0,
-              bank: 0,
-              level: 0,
-              xp: 0,
-              reputation: 0,
-              voiceTime: 0,
-              messages: 0,
-              loveLevel: 0,
-              loveXp: 0
-            }
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+        await rest.put(
+            Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
+            { body: commands }
         );
-
-        if (!data.partnerId) {
-          await interaction.reply({ content: `❤️ У ${user.displayName} нет пары`, flags: 64 });
-          return;
-        }
-
-        const partner = await client.users.fetch(data.partnerId);
-        const buffer = await createLoveCard(user, partner, {
-          loveLevel: data.loveLevel || 0,
-          loveXp: data.loveXp || 0,
-          voiceTime: data.voiceTime || 0,
-          marriedAt: data.marriedAt,
-          messages: data.messages || 0
-        });
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`back_${user.id}`)
-            .setLabel('Обычный профиль')
-            .setStyle(ButtonStyle.Secondary)
-        );
-
-        await interaction.reply({
-          files: [new AttachmentBuilder(buffer, { name: 'love.png' })],
-          components: [row],
-          content: `**${user.displayName}** ❤️ **${partner.displayName}**`
-        });
-      } catch (error) {
-        console.error('❌ Ошибка love_profile:', error);
-        await interaction.reply({
-          content: '❌ Ошибка при открытии любовного профиля',
-          flags: 64
-        }).catch(() => {});
-      }
+        console.log('✅ Слеш-команды загружены');
+    } catch (error) {
+        console.error(error);
     }
-
-    if (interaction.customId.startsWith('back_')) {
-      try {
-        const userId = interaction.customId.replace('back_', '');
-        const user = await client.users.fetch(userId);
-        const profileCommand = await import('./commands/profile.js');
-        if (profileCommand?.execute) {
-          const fakeInteraction = {
-            ...interaction,
-            options: {
-              getUser: () => user,
-              get: () => null
-            }
-          };
-          await profileCommand.execute(fakeInteraction);
-        }
-      } catch (error) {
-        console.error('❌ Ошибка back_to_profile:', error);
-        await interaction.reply({
-          content: '❌ Ошибка при возврате в профиль',
-          flags: 64
-        }).catch(() => {});
-      }
-    }
-  }
 });
 
-client.login(TOKEN);
-console.log('🚀 Бот запускается...');
+// Обработка команд
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
+    
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+    
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(error);
+        await interaction.reply({ content: '❌ Произошла ошибка!', ephemeral: true });
+    }
+});
+
+// Обработка префикс-команд (!bal, !dep и т.д.)
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+    if (!message.content.startsWith('!')) return;
+    
+    const args = message.content.slice(1).trim().split(/ +/);
+    const cmd = args.shift().toLowerCase();
+    
+    // !bal → показывает баланс
+    if (['bal', 'balance', 'деньги', 'баланс', 'кошелёк'].includes(cmd)) {
+        const User = require('./models/User');
+        let user = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
+        if (!user) {
+            user = await User.create({ userId: message.author.id, guildId: message.guild.id });
+        }
+        const total = user.wallet + user.bank;
+        return message.reply(`💰 Кошелёк: **${user.wallet.toLocaleString()}** | 🏦 Банк: **${user.bank.toLocaleString()}** | 💎 Всего: **${total.toLocaleString()}**`);
+    }
+    
+    // !dep 1000 → положить в банк
+    if (['dep', 'deposit', 'положить'].includes(cmd)) {
+        const User = require('./models/User');
+        let user = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
+        if (!user) return message.reply('❌ Ты ещё не в системе. Напиши /balance');
+        
+        let amount = parseInt(args[0]);
+        if (args[0] === 'all' || args[0] === 'всё') amount = user.wallet;
+        if (!amount || amount <= 0) return message.reply('❌ Укажи сумму: !dep 1000 или !dep all');
+        if (amount > user.wallet) return message.reply('❌ Недостаточно денег в кошельке!');
+        
+        user.wallet -= amount;
+        user.bank += amount;
+        await user.save();
+        return message.reply(`✅ Положено в банк: **${amount.toLocaleString()}** коинов`);
+    }
+    
+    // !with 500 → снять из банка
+    if (['with', 'withdraw', 'снять'].includes(cmd)) {
+        const User = require('./models/User');
+        let user = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
+        if (!user) return message.reply('❌ Ты ещё не в системе. Напиши /balance');
+        
+        let amount = parseInt(args[0]);
+        if (args[0] === 'all' || args[0] === 'всё') amount = user.bank;
+        if (!amount || amount <= 0) return message.reply('❌ Укажи сумму: !with 500 или !with all');
+        if (amount > user.bank) return message.reply('❌ Недостаточно денег в банке!');
+        
+        user.bank -= amount;
+        user.wallet += amount;
+        await user.save();
+        return message.reply(`✅ Снято из банка: **${amount.toLocaleString()}** коинов`);
+    }
+    
+    // !pay @user 1000 → перевести
+    if (['pay', 'transfer', 'перевести', 'перевод'].includes(cmd)) {
+        const User = require('./models/User');
+        const target = message.mentions.users.first();
+        if (!target) return message.reply('❌ Укажи пользователя: !pay @user 1000');
+        
+        const amount = parseInt(args[1]);
+        if (!amount || amount <= 0) return message.reply('❌ Укажи сумму: !pay @user 1000');
+        
+        let sender = await User.findOne({ userId: message.author.id, guildId: message.guild.id });
+        if (!sender || sender.wallet < amount) return message.reply('❌ Недостаточно денег!');
+        
+        let receiver = await User.findOne({ userId: target.id, guildId: message.guild.id });
+        if (!receiver) receiver = await User.create({ userId: target.id, guildId: message.guild.id });
+        
+        sender.wallet -= amount;
+        receiver.wallet += amount;
+        await sender.save();
+        await receiver.save();
+        return message.reply(`✅ Переведено **${amount.toLocaleString()}** коинов → ${target.username}`);
+    }
+});
+
+// Запуск
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => {
+        console.log('✅ MongoDB подключена');
+        client.login(process.env.DISCORD_TOKEN);
+    })
+    .catch(err => console.error('❌ MongoDB ошибка:', err));
