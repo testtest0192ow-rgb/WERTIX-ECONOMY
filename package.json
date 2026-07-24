@@ -1,13 +1,16 @@
 {
-  "name": "wertix-bot",
+  "name": "sector-economy",
   "version": "1.0.0",
-  "type": "module",
+  "description": "SECTOR Economy Bot",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.18.0",
+    "discord.js": "^14.14.1",
     "mongoose": "^8.0.0",
-    "@napi-rs/canvas": "^0.1.0"
+    "dotenv": "^16.3.1",
+    "@napi-rs/canvas": "^0.1.44",
+    "canvas": "^2.11.2"
   }
 }
