@@ -1,13 +1,15 @@
 services:
-  - type: web
-    name: economy-bot
-    runtime: node
+  - type: worker
+    name: sector-economy
+    env: node
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node index.js
     envVars:
-      - key: TOKEN
+      - key: DISCORD_TOKEN
         sync: false
-      - key: CLIENT_ID
+      - key: OWNER_ID
         sync: false
-      - key: MONGODB_URI
+      - key: GUILD_ID
+        sync: false
+      - key: MONGO_URI
         sync: false
