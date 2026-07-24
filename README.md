@@ -1,1 +1,0 @@
-# WERTIX-ECONOMY
