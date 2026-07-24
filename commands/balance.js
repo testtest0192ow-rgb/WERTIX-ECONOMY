@@ -1,51 +1,50 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import User from '../models/User.js';
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const User = require('../models/User');
+const emojis = require('../utils/emojis');
 
-export const data = new SlashCommandBuilder()
-  .setName('balance')
-  .setDescription('Показать баланс пользователя')
-  .addUserOption(option =>
-    option.setName('user')
-      .setDescription('Выберите пользователя')
-      .setRequired(false)
-  );
-
-export async function execute(interaction) {
-  try {
-    const user = interaction.options.getUser('user') || interaction.user;
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('balance')
+        .setDescription('💰 Показать баланс')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('Пользователь')
+                .setRequired(false)),
     
-    let userData = await User.findOneAndUpdate(
-      { userId: user.id, guildId: interaction.guildId },
-      { 
-        $setOnInsert: { 
-          userId: user.id, 
-          guildId: interaction.guildId,
-          balance: 0,
-          bank: 0,
-          level: 0,
-          xp: 0,
-          reputation: 0,
-          voiceTime: 0,
-          messages: 0,
-          loveLevel: 0,
-          loveXp: 0
-        } 
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    const embed = new EmbedBuilder()
-      .setColor('#5865f2')
-      .setAuthor({ name: user.displayName, iconURL: user.displayAvatarURL() })
-      .setDescription(`💰 **Баланс:** ${userData.balance || 0} монет\n🏦 **Банк:** ${userData.bank || 0} монет\n❤️ **Репутация:** ${userData.reputation || 0}`)
-      .setFooter({ text: `ID: ${user.id}` });
-
-    await interaction.reply({ embeds: [embed] });
-  } catch (error) {
-    console.error('❌ Ошибка в balance.js:', error);
-    await interaction.reply({
-      content: '❌ Ошибка при получении баланса',
-      flags: 64
-    });
-  }
-}
+    async execute(interaction) {
+        await interaction.deferReply();
+        
+        const target = interaction.options.getUser('user') || interaction.user;
+        let user = await User.findOne({ userId: target.id, guildId: interaction.guild.id });
+        
+        if (!user) {
+            user = await User.create({ userId: target.id, guildId: interaction.guild.id });
+        }
+        
+        const total = user.wallet + user.bank;
+        
+        const embed = new EmbedBuilder()
+            .setTitle(`${emojis.coin} Баланс ${target.username}`)
+            .setColor('#FFD700')
+            .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+            .addFields(
+                { name: `${emojis.wallet} Кошелёк`, value: `\`\`\`${user.wallet.toLocaleString()} коинов\`\`\``, inline: true },
+                { name: `${emojis.bank} Банк`, value: `\`\`\`${user.bank.toLocaleString()} коинов\`\`\``, inline: true },
+                { name: `${emojis.diamond} Всего`, value: `\`\`\`${total.toLocaleString()} коинов\`\`\``, inline: false },
+                { name: `${emojis.crown} Уровень`, value: `\`\`\`${user.level}\`\`\``, inline: true },
+                { name: `${emojis.fire} Престиж`, value: `\`\`\`${user.prestige}\`\`\``, inline: true }
+            )
+            .setFooter({ text: 'SECTOR ECONOMY' })
+            .setTimestamp();
+        
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder().setCustomId('deposit').setLabel('В банк').setStyle(ButtonStyle.Primary).setEmoji('🏦'),
+                new ButtonBuilder().setCustomId('withdraw').setLabel('Снять').setStyle(ButtonStyle.Primary).setEmoji('💳'),
+                new ButtonBuilder().setCustomId('income').setLabel('Доходы').setStyle(ButtonStyle.Success).setEmoji('📈'),
+                new ButtonBuilder().setCustomId('expenses').setLabel('Расходы').setStyle(ButtonStyle.Danger).setEmoji('📉'),
+            );
+        
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    },
+};
