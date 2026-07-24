@@ -1,21 +1,32 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
-  guildId: { type: String, required: true },
-  balance: { type: Number, default: 0 },
-  bank: { type: Number, default: 0 },
-  level: { type: Number, default: 0 },
-  xp: { type: Number, default: 0 },
-  reputation: { type: Number, default: 0 },
-  voiceTime: { type: Number, default: 0 },
-  messages: { type: Number, default: 0 },
-  partnerId: { type: String, default: null },
-  loveLevel: { type: Number, default: 0 },
-  loveXp: { type: Number, default: 0 },
-  marriedAt: { type: Date, default: null },
-  background: { type: String, default: 'default' },
-  about: { type: String, default: '' }
-}, { timestamps: true });
+const UserSchema = new mongoose.Schema({
+    userId: { type: String, required: true },
+    guildId: { type: String, required: true },
+    wallet: { type: Number, default: 500 },
+    bank: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    xp: { type: Number, default: 0 },
+    prestige: { type: Number, default: 0 },
+    dailyStreak: { type: Number, default: 0 },
+    lastDaily: { type: Date },
+    lastWeekly: { type: Date },
+    lastMonthly: { type: Date },
+    lastWork: { type: Date },
+    lastFish: { type: Date },
+    lastRob: { type: Date },
+    lastCrime: { type: Date },
+    shield: { type: Boolean, default: false },
+    bio: { type: String, default: '' },
+    badges: { type: [String], default: [] },
+    achievements: { type: [String], default: [] },
+    totalEarned: { type: Number, default: 0 },
+    totalLost: { type: Number, default: 0 },
+    reputation: { type: Number, default: 0 },
+    marriedTo: { type: String, default: null },
+    createdAt: { type: Date, default: Date.now },
+});
 
-export default mongoose.model('User', userSchema);
+UserSchema.index({ userId: 1, guildId: 1 }, { unique: true });
+
+module.exports = mongoose.model('User', UserSchema);
