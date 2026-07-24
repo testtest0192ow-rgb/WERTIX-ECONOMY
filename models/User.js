@@ -27,6 +27,6 @@ const UserSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
 });
 
-UserSchema.index({ userId: 1, guildId: 1 }, { unique: true });
+UserSchema.index({ userId: 1, guildId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('User', UserSchema);
