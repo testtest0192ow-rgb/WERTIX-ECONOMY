@@ -1,7 +1,6 @@
 {
-  "name": "sector-economy",
+  "name": "top-bot",
   "version": "1.0.0",
-  "description": "SECTOR Economy Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,8 +8,6 @@
   "dependencies": {
     "discord.js": "^14.14.1",
     "mongoose": "^8.0.0",
-    "dotenv": "^16.3.1",
-    "@napi-rs/canvas": "^0.1.44",
-    "canvas": "^2.11.2"
+    "dotenv": "^16.0.0"
   }
 }
