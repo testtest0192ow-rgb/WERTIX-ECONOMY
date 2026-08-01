@@ -1,51 +1,76 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const User = require('../models/User');
+const emojis = require('../utils/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('transfer')
-        .setDescription('Перевести деньги')
+        .setDescription('Перевести деньги другому пользователю')
         .addUserOption(option =>
             option.setName('user')
-                .setDescription('Кому')
-                .setRequired(true))
+                .setDescription('Кому перевести')
+                .setRequired(true)
+        )
         .addIntegerOption(option =>
             option.setName('amount')
-                .setDescription('Сумма')
-                .setRequired(true)),
-    
+                .setDescription('Сколько перевести')
+                .setRequired(true)
+        ),
+
     async execute(interaction) {
         const target = interaction.options.getUser('user');
         const amount = interaction.options.getInteger('amount');
-        
+
+        // ❌ нельзя самому себе
         if (target.id === interaction.user.id) {
-            return interaction.reply({ content: '❌ Нельзя себе!', flags: 64 });
+            return interaction.reply({
+                content: `${emojis.error} Нельзя переводить самому себе`,
+                ephemeral: true
+            });
         }
-        if (amount < 10) {
-            return interaction.reply({ content: '❌ Минимум 10!', flags: 64 });
+
+        // ❌ сумма
+        if (amount <= 0) {
+            return interaction.reply({
+                content: `${emojis.error} Укажи норм сумму`,
+                ephemeral: true
+            });
         }
-        
-        let sender = await User.findOne({ userId: interaction.user.id, guildId: interaction.guild.id });
-        if (!sender || sender.wallet < amount) {
-            return interaction.reply({ content: '❌ Недостаточно денег!', flags: 64 });
+
+        // 👤 отправитель
+        let sender = await User.findOne({ userId: interaction.user.id });
+        if (!sender) sender = await User.create({ userId: interaction.user.id });
+
+        // 👤 получатель
+        let receiver = await User.findOne({ userId: target.id });
+        if (!receiver) receiver = await User.create({ userId: target.id });
+
+        // ❌ проверка баланса
+        if (sender.balance < amount) {
+            return interaction.reply({
+                content: `${emojis.error} Недостаточно денег`,
+                ephemeral: true
+            });
         }
-        
-        let receiver = await User.findOne({ userId: target.id, guildId: interaction.guild.id });
-        if (!receiver) receiver = await User.create({ userId: target.id, guildId: interaction.guild.id });
-        
-        const tax = Math.floor(amount * 0.06);
-        const final = amount - tax;
-        
-        sender.wallet -= amount;
-        receiver.wallet += final;
+
+        // 💰 перевод
+        sender.balance -= amount;
+        receiver.balance += amount;
+
         await sender.save();
         await receiver.save();
-        
+
+        // 📊 embed
         const embed = new EmbedBuilder()
-            .setColor('#FFD700')
-            .setDescription(`✅ **${final.toLocaleString()}** → ${target.username}`)
-            .addFields({ name: 'Налог (6%)', value: `${tax}`, inline: true });
-        
-        await interaction.reply({ embeds: [embed] });
-    },
+            .setColor('#2f3136')
+            .setTitle(`${emojis.money} Перевод`)
+            .setDescription(
+                `${emojis.success} Ты перевёл **${amount}** ${emojis.money}\n\n` +
+                `👤 Получатель: ${target}\n` +
+                `${emojis.wallet} Твой баланс: **${sender.balance}**`
+            )
+            .setTimestamp();
+
+        interaction.reply({ embeds: [embed] });
+    }
 };
