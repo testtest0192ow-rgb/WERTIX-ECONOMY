@@ -10,8 +10,8 @@ module.exports = {
 
         try {
             await command.execute(interaction);
-        } catch (error) {
-            console.error(error);
+        } catch (err) {
+            console.error(err);
             interaction.reply({ content: 'Ошибка 💀', ephemeral: true });
         }
     }
