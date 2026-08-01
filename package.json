@@ -1,13 +1,16 @@
 {
-  "name": "top-bot",
+  "name": "wertix-economy",
   "version": "1.0.0",
+  "description": "Discord economy bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "author": "wertix",
+  "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "mongoose": "^8.0.0",
-    "dotenv": "^16.0.0"
+    "discord.js": "^14.15.3",
+    "mongoose": "^8.5.1",
+    "express": "^4.19.2"
   }
 }
