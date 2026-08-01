@@ -1,4 +1,6 @@
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+require('dotenv').config();
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const mongoose = require('mongoose');
 const fs = require('fs');
 
 const client = new Client({
@@ -7,27 +9,24 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// 🔥 handler команд
-const loadCommands = () => {
-    const files = fs.readdirSync('./commands');
+const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.data.name, command);
+}
 
-    for (const file of files) {
-        const command = require(`./commands/${file}`);
-        client.commands.set(command.name, command);
-    }
-};
-
-// 🔥 handler событий (будет масштаб)
-const loadEvents = () => {
-    const eventFiles = fs.readdirSync('./events');
-
-    for (const file of eventFiles) {
-        const event = require(`./events/${file}`);
+const eventFiles = fs.readdirSync('./events').filter(f => f.endsWith('.js'));
+for (const file of eventFiles) {
+    const event = require(`./events/${file}`);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args, client));
+    } else {
         client.on(event.name, (...args) => event.execute(...args, client));
     }
-};
+}
 
-loadCommands();
-loadEvents();
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('MongoDB OK'))
+    .catch(console.error);
 
 client.login(process.env.TOKEN);
