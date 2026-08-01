@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const User = require('../models/User');
+const emojis = require('../utils/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,27 +8,51 @@ module.exports = {
         .setDescription('Снять деньги из банка')
         .addIntegerOption(option =>
             option.setName('amount')
-                .setDescription('Сумма (0 = всё)')
-                .setRequired(true)),
-    
+                .setDescription('Сколько снять')
+                .setRequired(true)
+        ),
+
     async execute(interaction) {
-        let amount = interaction.options.getInteger('amount');
-        let user = await User.findOne({ userId: interaction.user.id, guildId: interaction.guild.id });
-        if (!user) return interaction.reply({ content: '❌ Напиши /balance сначала', flags: 64 });
-        
-        if (amount === 0) amount = user.bank;
-        if (amount <= 0 || amount > user.bank) {
-            return interaction.reply({ content: '❌ Неверная сумма!', flags: 64 });
+        const amount = interaction.options.getInteger('amount');
+
+        if (amount <= 0) {
+            return interaction.reply({
+                content: `${emojis.error} Укажи норм сумму`,
+                ephemeral: true
+            });
         }
-        
+
+        let user = await User.findOne({ userId: interaction.user.id });
+
+        if (!user) {
+            return interaction.reply({
+                content: `${emojis.error} У тебя нет аккаунта`,
+                ephemeral: true
+            });
+        }
+
+        if (user.bank < amount) {
+            return interaction.reply({
+                content: `${emojis.error} Недостаточно в банке`,
+                ephemeral: true
+            });
+        }
+
         user.bank -= amount;
-        user.wallet += amount;
+        user.balance += amount;
+
         await user.save();
-        
+
         const embed = new EmbedBuilder()
-            .setColor('#64C8FF')
-            .setDescription(`✅ Снято: **${amount.toLocaleString()}**`);
-        
-        await interaction.reply({ embeds: [embed] });
-    },
+            .setColor('#2f3136')
+            .setTitle(`${emojis.bank} Снятие`)
+            .setDescription(
+                `${emojis.money} Ты снял **${amount}** монет\n\n` +
+                `${emojis.wallet} Кошелёк: **${user.balance}**\n` +
+                `${emojis.bank} Банк: **${user.bank}**`
+            )
+            .setTimestamp();
+
+        interaction.reply({ embeds: [embed] });
+    }
 };
