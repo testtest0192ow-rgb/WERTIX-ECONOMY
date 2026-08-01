@@ -2,9 +2,8 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const mongoose = require("mongoose");
 const express = require("express");
 
-// ====== EXPRESS (ОБЯЗАТЕЛЬНО ДЛЯ RENDER) ======
+// ====== EXPRESS (ДЛЯ RENDER) ======
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
@@ -24,7 +23,7 @@ const client = new Client({
   ]
 });
 
-// ====== MONGODB ======
+// ====== MONGO ======
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB OK"))
   .catch(err => console.log("Mongo error:", err));
@@ -38,7 +37,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model("User", userSchema);
 
 // ====== READY ======
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`Запущен как ${client.user.tag}`);
 });
 
@@ -46,10 +45,10 @@ client.once("ready", () => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  const args = message.content.split(" ");
+  const args = message.content.trim().split(/ +/);
   const cmd = args[0].toLowerCase();
 
-  // ====== БАЛАНС ======
+  // ====== BALANCE ======
   if (cmd === "!balance") {
     let user = await User.findOne({ userId: message.author.id });
 
@@ -58,18 +57,20 @@ client.on("messageCreate", async (message) => {
       await user.save();
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle("💰 Баланс")
-      .setDescription(`У тебя: **${user.balance}** монет`)
-      .setColor("Green");
-
-    return message.reply({ embeds: [embed] });
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("💰 Баланс")
+          .setDescription(`У тебя: **${user.balance}** монет`)
+          .setColor("Green")
+      ]
+    });
   }
 
-  // ====== ДОБАВИТЬ (ТЕСТ) ======
+  // ====== ADD (ТЕСТ) ======
   if (cmd === "!add") {
     const amount = parseInt(args[1]);
-    if (!amount) return message.reply("Укажи сумму");
+    if (isNaN(amount)) return message.reply("Укажи норм число");
 
     let user = await User.findOne({ userId: message.author.id });
 
@@ -83,13 +84,13 @@ client.on("messageCreate", async (message) => {
     return message.reply(`Добавлено ${amount}`);
   }
 
-  // ====== ПЕРЕВОД ======
+  // ====== TRANSFER ======
   if (cmd === "!transfer") {
     const target = message.mentions.users.first();
     const amount = parseInt(args[2]);
 
-    if (!target) return message.reply("Укажи пользователя");
-    if (!amount || amount <= 0) return message.reply("Укажи сумму");
+    if (!target) return message.reply("Отметь пользователя");
+    if (isNaN(amount) || amount <= 0) return message.reply("Норм сумму");
 
     let sender = await User.findOne({ userId: message.author.id });
     let receiver = await User.findOne({ userId: target.id });
@@ -107,15 +108,17 @@ client.on("messageCreate", async (message) => {
     await sender.save();
     await receiver.save();
 
-    const embed = new EmbedBuilder()
-      .setTitle("💸 Перевод")
-      .setDescription(`${message.author} перевёл ${target} **${amount}** монет`)
-      .setColor("Blue");
-
-    return message.reply({ embeds: [embed] });
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("💸 Перевод")
+          .setDescription(`${message.author} → ${target} : **${amount}**`)
+          .setColor("Blue")
+      ]
+    });
   }
 
-  // ====== ТОП ======
+  // ====== TOP ======
   if (cmd === "!top") {
     const users = await User.find().sort({ balance: -1 }).limit(10);
 
@@ -123,14 +126,35 @@ client.on("messageCreate", async (message) => {
       .map((u, i) => `**${i + 1}.** <@${u.userId}> — ${u.balance}`)
       .join("\n");
 
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 Топ игроков")
-      .setDescription(text || "Пусто")
-      .setColor("Gold");
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("🏆 Топ")
+          .setDescription(text || "Пусто")
+          .setColor("Gold")
+      ]
+    });
+  }
 
-    return message.reply({ embeds: [embed] });
+  // ====== WORK ======
+  if (cmd === "!work") {
+    const amount = Math.floor(Math.random() * 100) + 50;
+
+    let user = await User.findOne({ userId: message.author.id });
+
+    if (!user) {
+      user = new User({ userId: message.author.id });
+    }
+
+    user.balance += amount;
+    await user.save();
+
+    return message.reply(`💼 Ты заработал ${amount} монет`);
   }
 });
+
+// ====== ERROR HANDLING ======
+process.on("unhandledRejection", console.error);
 
 // ====== LOGIN ======
 client.login(process.env.TOKEN);
